@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meta × Amazon Attribution Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0b0d10; color: #e6e8eb;
+  }
+  main { padding: 32px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 24px 0 8px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sub { color: #8a93a0; font-size: 13px; margin-bottom: 24px; }
+  .card { background: #15191f; border: 1px solid #2a313b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  details summary { cursor: pointer; font-weight: 600; color: #e6e8eb; }
+  details[open] summary { margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: #8a93a0; margin: 8px 0 4px; }
+  input, textarea, button, select {
+    background: #0b0d10; color: #e6e8eb; border: 1px solid #2a313b;
+    padding: 8px 12px; border-radius: 6px; font-size: 13px; font-family: inherit;
+  }
+  input, textarea, select { width: 100%; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; min-height: 120px; }
+  button { cursor: pointer; font-weight: 600; }
+  button:hover { background: #1d232b; }
+  button.primary { background: #2563eb; border-color: #2563eb; color: white; }
+  button.primary:hover { background: #1d4ed8; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-bottom: 16px; }
+  .controls > div { flex: 0 0 auto; }
+  .controls input { width: auto; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: #15191f; border: 1px solid #2a313b; border-radius: 8px; padding: 16px; }
+  .kpi-label { font-size: 11px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; background: #15191f; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: right; font-size: 13px; border-bottom: 1px solid #2a313b; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #1d232b; color: #8a93a0; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+  tr:last-child td { border-bottom: none; }
+  .roas-good { color: #4ade80; }
+  .roas-bad { color: #f87171; }
+  .error { background: #3a1212; border: 1px solid #6e2020; color: #fca5a5; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+  .warn { background: #3a2c12; border: 1px solid #6e5520; color: #fcd34d; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; }
+  .empty { color: #8a93a0; font-style: italic; padding: 24px; text-align: center; }
+  code { background: #0b0d10; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Meta × Amazon Attribution</h1>
+  <div class="sub">
+    Live ROAS view. Spend from the Meta Marketing API, sales from Amazon Attribution.
+    Credentials and mappings are stored locally in your browser.
+  </div>
+
+  <div class="warn">
+    <strong>CORS note.</strong> Meta's Graph API allows browser calls with an access token.
+    Amazon Ads API does <em>not</em> allow direct browser calls — choose the
+    <strong>Paste CSV</strong> source for Amazon, or run this file behind a proxy that adds
+    <code>Access-Control-Allow-Origin</code>. Keep this file local; tokens live in
+    <code>localStorage</code>.
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>1. Credentials</summary>
+      <div class="row">
+        <div>
+          <label>Meta access token (System User, <code>ads_read</code> scope)</label>
+          <input id="metaToken" type="password" placeholder="EAAB..." />
+          <label>Meta ad account ID (with <code>act_</code> prefix)</label>
+          <input id="metaAccount" placeholder="act_1234567890" />
+          <label>Meta API version</label>
+          <input id="metaVersion" placeholder="v21.0" />
+        </div>
+        <div>
+          <label>Amazon Ads access token (Bearer)</label>
+          <input id="amazonToken" type="password" placeholder="Atza|..." />
+          <label>Amazon Ads client ID</label>
+          <input id="amazonClient" placeholder="amzn1.application-oa2-client..." />
+          <label>Amazon Ads profile ID</label>
+          <input id="amazonProfile" placeholder="123456789" />
+        </div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button onclick="saveCreds()">Save credentials</button>
+        <button onclick="clearCreds()">Clear</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>2. Ad ↔ Tag mapping</summary>
+      <label>JSON array of <code>{ metaAdId, amazonTagId, label }</code></label>
+      <textarea id="mapping" placeholder='[
+  { "metaAdId": "120203...", "amazonTagId": "tag_abc123", "label": "Spring Sale Carousel" }
+]'></textarea>
+      <div style="margin-top: 8px;">
+        <button onclick="saveMapping()">Save mapping</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>3. Pull data</summary>
+      <div class="controls" style="margin-top: 12px;">
+        <div>
+          <label>Since</label>
+          <input id="since" type="date" />
+        </div>
+        <div>
+          <label>Until</label>
+          <input id="until" type="date" />
+        </div>
+        <div>
+          <label>Amazon source</label>
+          <select id="amazonSource">
+            <option value="api">Live API (requires proxy)</option>
+            <option value="csv">Paste CSV from Amazon report</option>
+          </select>
+        </div>
+        <div>
+          <button class="primary" onclick="run()">Pull & join</button>
+        </div>
+      </div>
+      <div id="csvWrap" style="display:none;">
+        <label>Amazon Attribution CSV — needs columns including <code>Attribution Tag ID</code> (or <code>Creative ID</code>), <code>Click-throughs</code>, <code>Detail Page Views</code>, <code>Purchases</code>, <code>Sales</code></label>
+        <textarea id="amazonCsv" placeholder="Attribution Tag ID,Click-throughs,Detail Page Views,Purchases,Sales
+tag_abc123,142,89,11,438.50"></textarea>
+      </div>
+    </details>
+  </div>
+
+  <div id="status"></div>
+  <div id="results"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmtMoney = (n) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const fmtNum = (n) => n.toLocaleString("en-US");
+const fmtRoas = (n) => n == null ? "—" : n.toFixed(2) + "x";
+
+function loadCreds() {
+  const c = JSON.parse(localStorage.getItem("creds") || "{}");
+  $("metaToken").value = c.metaToken || "";
+  $("metaAccount").value = c.metaAccount || "";
+  $("metaVersion").value = c.metaVersion || "v21.0";
+  $("amazonToken").value = c.amazonToken || "";
+  $("amazonClient").value = c.amazonClient || "";
+  $("amazonProfile").value = c.amazonProfile || "";
+}
+function saveCreds() {
+  localStorage.setItem("creds", JSON.stringify({
+    metaToken: $("metaToken").value.trim(),
+    metaAccount: $("metaAccount").value.trim(),
+    metaVersion: $("metaVersion").value.trim() || "v21.0",
+    amazonToken: $("amazonToken").value.trim(),
+    amazonClient: $("amazonClient").value.trim(),
+    amazonProfile: $("amazonProfile").value.trim(),
+  }));
+  setStatus("Credentials saved to localStorage.");
+}
+function clearCreds() {
+  localStorage.removeItem("creds");
+  loadCreds();
+  setStatus("Credentials cleared.");
+}
+function loadMapping() {
+  $("mapping").value = localStorage.getItem("mapping") ||
+    '[\n  { "metaAdId": "REPLACE_ME", "amazonTagId": "REPLACE_ME", "label": "Example" }\n]';
+}
+function saveMapping() {
+  try {
+    const parsed = JSON.parse($("mapping").value);
+    if (!Array.isArray(parsed)) throw new Error("must be an array");
+    localStorage.setItem("mapping", $("mapping").value);
+    setStatus("Mapping saved (" + parsed.length + " entries).");
+  } catch (e) {
+    setStatus("Invalid JSON: " + e.message, true);
+  }
+}
+function setStatus(msg, isError) {
+  $("status").innerHTML = msg ? '<div class="' + (isError ? "error" : "warn") + '">' + msg + "</div>" : "";
+}
+
+function defaultDates() {
+  const until = new Date();
+  const since = new Date(); since.setDate(since.getDate() - 30);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { since: fmt(since), until: fmt(until) };
+}
+
+async function fetchMeta(creds, since, until) {
+  if (!creds.metaToken || !creds.metaAccount) {
+    throw new Error("Meta credentials missing");
+  }
+  const params = new URLSearchParams({
+    access_token: creds.metaToken,
+    level: "ad",
+    fields: "ad_id,ad_name,spend,impressions,clicks",
+    time_range: JSON.stringify({ since, until }),
+    limit: "500",
+  });
+  let url = "https://graph.facebook.com/" + creds.metaVersion +
+            "/" + creds.metaAccount + "/insights?" + params.toString();
+  const rows = [];
+  while (url) {
+    const res = await fetch(url);
+    const body = await res.json();
+    if (!res.ok || body.error) throw new Error("Meta API: " + (body.error?.message || res.statusText));
+    for (const r of body.data) {
+      rows.push({
+        adId: r.ad_id, adName: r.ad_name,
+        spend: Number(r.spend || 0),
+        impressions: Number(r.impressions || 0),
+        clicks: Number(r.clicks || 0),
+      });
+    }
+    url = body.paging?.next;
+  }
+  return rows;
+}
+
+async function fetchAmazonApi(creds, startDate, endDate) {
+  if (!creds.amazonToken || !creds.amazonClient || !creds.amazonProfile) {
+    throw new Error("Amazon credentials missing");
+  }
+  const res = await fetch("https://advertising-api.amazon.com/attribution/report", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + creds.amazonToken,
+      "Amazon-Advertising-API-ClientId": creds.amazonClient,
+      "Amazon-Advertising-API-Scope": creds.amazonProfile,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reportType: "PERFORMANCE",
+      startDate: startDate.replace(/-/g, ""),
+      endDate: endDate.replace(/-/g, ""),
+      metrics: "Click-throughs,attributedDetailPageViewsClicks14d,attributedPurchases14d,attributedSales14d",
+      groupBy: "CREATIVE",
+    }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error("Amazon API: " + (body.message || res.statusText));
+  return (body.reports || []).map((r) => ({
+    tagId: r.attributionTagId || r.creativeId || "",
+    clicks: Number(r.click || 0),
+    detailPageViews: Number(r.detailPageView || 0),
+    purchases: Number(r.purchases || 0),
+    sales: Number(r.attributedSales14d || 0),
+  }));
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const splitCsv = (line) => {
+    const out = []; let cur = ""; let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') q = !q;
+      else if (c === "," && !q) { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur); return out.map(s => s.trim());
+  };
+  const headers = splitCsv(lines[0]).map(h => h.toLowerCase());
+  const findIdx = (...names) => {
+    for (const n of names) {
+      const i = headers.findIndex(h => h === n.toLowerCase() || h.includes(n.toLowerCase()));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const idxTag = findIdx("attribution tag id", "tag id", "creative id");
+  const idxClicks = findIdx("click-throughs", "clicks");
+  const idxDpv = findIdx("detail page view");
+  const idxPurch = findIdx("purchases");
+  const idxSales = findIdx("sales");
+  if (idxTag < 0) throw new Error("CSV missing tag/creative id column");
+  return lines.slice(1).map(line => {
+    const cells = splitCsv(line);
+    const num = (i) => i >= 0 ? Number((cells[i] || "0").replace(/[$,]/g, "")) : 0;
+    return {
+      tagId: cells[idxTag],
+      clicks: num(idxClicks),
+      detailPageViews: num(idxDpv),
+      purchases: num(idxPurch),
+      sales: num(idxSales),
+    };
+  });
+}
+
+function joinByMapping(meta, amazon, mappings) {
+  const metaByAdId = new Map(meta.map(m => [m.adId, m]));
+  const amazonByTag = new Map(amazon.map(a => [a.tagId, a]));
+  return mappings.map(m => {
+    const mi = metaByAdId.get(m.metaAdId);
+    const ai = amazonByTag.get(m.amazonTagId);
+    const spend = mi?.spend || 0;
+    const sales = ai?.sales || 0;
+    const purchases = ai?.purchases || 0;
+    return {
+      label: m.label, metaAdId: m.metaAdId, amazonTagId: m.amazonTagId,
+      spend,
+      metaImpressions: mi?.impressions || 0,
+      metaClicks: mi?.clicks || 0,
+      amazonClicks: ai?.clicks || 0,
+      detailPageViews: ai?.detailPageViews || 0,
+      purchases, sales,
+      roas: spend > 0 ? sales / spend : null,
+      cpa: purchases > 0 ? spend / purchases : null,
+    };
+  });
+}
+
+function render(rows, totals, range) {
+  if (!rows.length) {
+    $("results").innerHTML = '<div class="empty">No mappings configured.</div>';
+    return;
+  }
+  const kpiHtml = `
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Meta Spend</div><div class="kpi-value">${fmtMoney(totals.spend)}</div></div>
+      <div class="kpi"><div class="kpi-label">Amazon Sales</div><div class="kpi-value">${fmtMoney(totals.sales)}</div></div>
+      <div class="kpi"><div class="kpi-label">Purchases</div><div class="kpi-value">${fmtNum(totals.purchases)}</div></div>
+      <div class="kpi"><div class="kpi-label">Blended ROAS</div>
+        <div class="kpi-value ${totals.blendedRoas != null && totals.blendedRoas >= 1 ? "roas-good" : "roas-bad"}">${fmtRoas(totals.blendedRoas)}</div>
+      </div>
+    </div>`;
+  const tableHtml = `
+    <table>
+      <thead><tr>
+        <th>Ad</th><th>Spend</th><th>Impr.</th><th>Meta Clicks</th>
+        <th>Amz Clicks</th><th>DPV</th><th>Purchases</th>
+        <th>Sales</th><th>CPA</th><th>ROAS</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.label}</td>
+            <td>${fmtMoney(r.spend)}</td>
+            <td>${fmtNum(r.metaImpressions)}</td>
+            <td>${fmtNum(r.metaClicks)}</td>
+            <td>${fmtNum(r.amazonClicks)}</td>
+            <td>${fmtNum(r.detailPageViews)}</td>
+            <td>${fmtNum(r.purchases)}</td>
+            <td>${fmtMoney(r.sales)}</td>
+            <td>${r.cpa == null ? "—" : fmtMoney(r.cpa)}</td>
+            <td class="${r.roas != null && r.roas >= 1 ? "roas-good" : "roas-bad"}">${fmtRoas(r.roas)}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>`;
+  $("results").innerHTML =
+    '<h2>' + range.since + " → " + range.until + '</h2>' + kpiHtml + tableHtml;
+}
+
+async function run() {
+  setStatus("");
+  $("results").innerHTML = "";
+  const creds = JSON.parse(localStorage.getItem("creds") || "{}");
+  const mapping = (() => {
+    try { return JSON.parse(localStorage.getItem("mapping") || "[]"); }
+    catch { return []; }
+  })();
+  const since = $("since").value;
+  const until = $("until").value;
+  if (!since || !until) { setStatus("Pick a date range.", true); return; }
+
+  try {
+    setStatus("Fetching Meta insights…");
+    const metaPromise = fetchMeta(creds, since, until);
+    let amazonPromise;
+    if ($("amazonSource").value === "api") {
+      amazonPromise = fetchAmazonApi(creds, since, until);
+    } else {
+      amazonPromise = Promise.resolve(parseCsv($("amazonCsv").value));
+    }
+    const [meta, amazon] = await Promise.all([metaPromise, amazonPromise]);
+    const rows = joinByMapping(meta, amazon, mapping);
+    const totals = rows.reduce((acc, r) => {
+      acc.spend += r.spend; acc.sales += r.sales; acc.purchases += r.purchases;
+      return acc;
+    }, { spend: 0, sales: 0, purchases: 0 });
+    totals.blendedRoas = totals.spend > 0 ? totals.sales / totals.spend : null;
+    setStatus("Loaded " + meta.length + " Meta rows, " + amazon.length + " Amazon rows.");
+    render(rows, totals, { since, until });
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+$("amazonSource").addEventListener("change", () => {
+  $("csvWrap").style.display = $("amazonSource").value === "csv" ? "" : "none";
+});
+
+(function init() {
+  const d = defaultDates();
+  $("since").value = d.since;
+  $("until").value = d.until;
+  loadCreds();
+  loadMapping();
+})();
+</script>
+</body>
+</html>
