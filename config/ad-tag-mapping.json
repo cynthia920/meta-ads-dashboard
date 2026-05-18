@@ -1,0 +1,9 @@
+{
+  "mappings": [
+    {
+      "metaAdId": "REPLACE_WITH_META_AD_ID",
+      "amazonTagId": "REPLACE_WITH_AMAZON_TAG_ID",
+      "label": "Example: Spring Sale - Carousel Ad 1"
+    }
+  ]
+}
