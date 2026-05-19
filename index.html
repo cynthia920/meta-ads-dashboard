@@ -311,19 +311,24 @@ function parseCsv(text) {
 function joinByMapping(meta, amazon, mappings) {
   const metaByAdId = new Map(meta.map(m => [m.adId, m]));
   const amazonByTag = new Map(amazon.map(a => [a.tagId, a]));
-  return mappings.map(m => {
-    const mi = metaByAdId.get(m.metaAdId);
-    const ai = amazonByTag.get(m.amazonTagId);
-    const spend = mi?.spend || 0;
-    const sales = ai?.sales || 0;
-    const purchases = ai?.purchases || 0;
+  const sum = (arr, k) => arr.reduce((acc, x) => acc + (x[k] || 0), 0);
+  return mappings.map(raw => {
+    const metaIds = raw.metaAdIds || (raw.metaAdId ? [raw.metaAdId] : []);
+    const tagIds = raw.amazonTagIds || (raw.amazonTagId ? [raw.amazonTagId] : []);
+    const metas = metaIds.map(id => metaByAdId.get(id)).filter(Boolean);
+    const amzs = tagIds.map(id => amazonByTag.get(id)).filter(Boolean);
+    const spend = sum(metas, "spend");
+    const sales = sum(amzs, "sales");
+    const purchases = sum(amzs, "purchases");
     return {
-      label: m.label, metaAdId: m.metaAdId, amazonTagId: m.amazonTagId,
+      label: raw.label,
+      metaAdId: metaIds.join(", "),
+      amazonTagId: tagIds.join(", "),
       spend,
-      metaImpressions: mi?.impressions || 0,
-      metaClicks: mi?.clicks || 0,
-      amazonClicks: ai?.clicks || 0,
-      detailPageViews: ai?.detailPageViews || 0,
+      metaImpressions: sum(metas, "impressions"),
+      metaClicks: sum(metas, "clicks"),
+      amazonClicks: sum(amzs, "clicks"),
+      detailPageViews: sum(amzs, "detailPageViews"),
       purchases, sales,
       roas: spend > 0 ? sales / spend : null,
       cpa: purchases > 0 ? spend / purchases : null,
@@ -396,35 +401,44 @@ async function autoBuildMapping() {
     }
 
     const norm = (s) => (s || "").trim().toLowerCase();
+
     const metaByName = new Map();
-    const dupedNames = new Set();
     for (const m of meta) {
       const key = norm(m.adName);
       if (!key) continue;
-      if (metaByName.has(key)) dupedNames.add(m.adName);
-      else metaByName.set(key, m);
+      if (!metaByName.has(key)) metaByName.set(key, { displayName: m.adName, ids: [] });
+      metaByName.get(key).ids.push(m.adId);
+    }
+
+    const amazonByName = new Map();
+    for (const a of amazon) {
+      const key = norm(a.adGroupName);
+      if (!key) continue;
+      if (!amazonByName.has(key)) amazonByName.set(key, { displayName: a.adGroupName, tagIds: [] });
+      amazonByName.get(key).tagIds.push(a.tagId);
     }
 
     const mapping = [];
     const unmatched = [];
-    for (const a of amazon) {
-      const key = norm(a.adGroupName);
-      if (!key) continue;
+    let aggregated = 0;
+    for (const [key, amz] of amazonByName) {
       const m = metaByName.get(key);
-      if (m) mapping.push({ metaAdId: m.adId, amazonTagId: a.tagId, label: m.adName });
-      else unmatched.push(a.adGroupName);
+      if (!m) { unmatched.push(amz.displayName); continue; }
+      if (m.ids.length > 1 || amz.tagIds.length > 1) aggregated++;
+      mapping.push({
+        metaAdIds: m.ids,
+        amazonTagIds: amz.tagIds,
+        label: m.displayName,
+      });
     }
 
     $("mapping").value = JSON.stringify(mapping, null, 2);
     let msg = "Auto-built " + mapping.length + " mappings from "
-            + amazon.length + " Amazon rows ("
-            + meta.length + " Meta ads).";
+            + amazon.length + " Amazon rows / " + meta.length + " Meta ads."
+            + (aggregated ? " " + aggregated + " entries aggregate multiple IDs by shared name." : "");
     if (unmatched.length) {
       const sample = unmatched.slice(0, 5).join(", ") + (unmatched.length > 5 ? "…" : "");
       msg += " Unmatched ad groups (" + unmatched.length + "): " + sample;
-    }
-    if (dupedNames.size) {
-      msg += " Duplicate Meta ad names (first wins): " + [...dupedNames].slice(0, 3).join(", ");
     }
     msg += " — review and click Save mapping.";
     setStatus(msg);
