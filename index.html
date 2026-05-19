@@ -102,6 +102,12 @@
 ]'></textarea>
       <div style="margin-top: 8px;">
         <button onclick="saveMapping()">Save mapping</button>
+        <button onclick="autoBuildMapping()">Auto-build by name match</button>
+      </div>
+      <div class="sub" style="margin-top: 8px;">
+        Auto-build pulls Meta ads + Amazon data (CSV if pasted, else live API) and matches
+        Amazon <strong>Ad Group name</strong> to Meta <strong>Ad name</strong> (case-insensitive).
+        Uses the date range from section 3.
       </div>
     </details>
   </div>
@@ -252,6 +258,7 @@ async function fetchAmazonApi(creds, startDate, endDate) {
   if (!res.ok) throw new Error("Amazon API: " + (body.message || res.statusText));
   return (body.reports || []).map((r) => ({
     tagId: r.attributionTagId || r.creativeId || "",
+    adGroupName: r.adGroupName || "",
     clicks: Number(r.click || 0),
     detailPageViews: Number(r.detailPageView || 0),
     purchases: Number(r.purchases || 0),
@@ -281,6 +288,7 @@ function parseCsv(text) {
     return -1;
   };
   const idxTag = findIdx("attribution tag id", "tag id", "creative id");
+  const idxAdGroup = findIdx("ad group name", "ad group", "adgroup");
   const idxClicks = findIdx("click-throughs", "clicks");
   const idxDpv = findIdx("detail page view");
   const idxPurch = findIdx("purchases");
@@ -291,6 +299,7 @@ function parseCsv(text) {
     const num = (i) => i >= 0 ? Number((cells[i] || "0").replace(/[$,]/g, "")) : 0;
     return {
       tagId: cells[idxTag],
+      adGroupName: idxAdGroup >= 0 ? cells[idxAdGroup] : "",
       clicks: num(idxClicks),
       detailPageViews: num(idxDpv),
       purchases: num(idxPurch),
@@ -361,6 +370,67 @@ function render(rows, totals, range) {
     </table>`;
   $("results").innerHTML =
     '<h2>' + range.since + " → " + range.until + '</h2>' + kpiHtml + tableHtml;
+}
+
+async function autoBuildMapping() {
+  setStatus("");
+  try {
+    const creds = JSON.parse(localStorage.getItem("creds") || "{}");
+    const since = $("since").value;
+    const until = $("until").value;
+    if (!since || !until) { setStatus("Pick a date range in section 3 first.", true); return; }
+
+    setStatus("Fetching Meta ads…");
+    const meta = await fetchMeta(creds, since, until);
+
+    let amazon;
+    const csv = $("amazonCsv").value.trim();
+    if (csv) {
+      amazon = parseCsv(csv);
+    } else if ($("amazonSource").value === "api") {
+      setStatus("Fetching Amazon Attribution…");
+      amazon = await fetchAmazonApi(creds, since, until);
+    } else {
+      setStatus("Paste an Amazon CSV in section 3 first (or switch to Live API).", true);
+      return;
+    }
+
+    const norm = (s) => (s || "").trim().toLowerCase();
+    const metaByName = new Map();
+    const dupedNames = new Set();
+    for (const m of meta) {
+      const key = norm(m.adName);
+      if (!key) continue;
+      if (metaByName.has(key)) dupedNames.add(m.adName);
+      else metaByName.set(key, m);
+    }
+
+    const mapping = [];
+    const unmatched = [];
+    for (const a of amazon) {
+      const key = norm(a.adGroupName);
+      if (!key) continue;
+      const m = metaByName.get(key);
+      if (m) mapping.push({ metaAdId: m.adId, amazonTagId: a.tagId, label: m.adName });
+      else unmatched.push(a.adGroupName);
+    }
+
+    $("mapping").value = JSON.stringify(mapping, null, 2);
+    let msg = "Auto-built " + mapping.length + " mappings from "
+            + amazon.length + " Amazon rows ("
+            + meta.length + " Meta ads).";
+    if (unmatched.length) {
+      const sample = unmatched.slice(0, 5).join(", ") + (unmatched.length > 5 ? "…" : "");
+      msg += " Unmatched ad groups (" + unmatched.length + "): " + sample;
+    }
+    if (dupedNames.size) {
+      msg += " Duplicate Meta ad names (first wins): " + [...dupedNames].slice(0, 3).join(", ");
+    }
+    msg += " — review and click Save mapping.";
+    setStatus(msg);
+  } catch (e) {
+    setStatus(e.message, true);
+  }
 }
 
 async function run() {
