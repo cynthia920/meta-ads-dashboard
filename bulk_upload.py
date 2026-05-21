@@ -157,7 +157,7 @@ def build_creative_spec(row):
     }
     instagram_actor = _get(row, "instagram_actor_id")
     if instagram_actor:
-        spec["object_story_spec"]["instagram_actor_id"] = instagram_actor
+        spec["object_story_spec"]["instagram_user_id"] = instagram_actor
     url_tags = _get(row, "url_tags")
     if url_tags:
         spec["url_tags"] = url_tags
