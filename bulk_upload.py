@@ -132,6 +132,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                 AdSet.Field.daily_budget: int(float(am["daily_budget_usd"]) * 100),
                 AdSet.Field.billing_event: am["billing_event"],
                 AdSet.Field.optimization_goal: am["optimization_goal"],
+                AdSet.Field.bid_strategy: "LOWEST_COST_WITHOUT_CAP",
                 AdSet.Field.targeting: build_targeting(am, dry_run=dry_run),
                 AdSet.Field.status: PAUSED,
             }
