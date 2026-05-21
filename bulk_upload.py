@@ -106,6 +106,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
             Campaign.Field.objective: cm["campaign_objective"],
             Campaign.Field.status: PAUSED,
             Campaign.Field.special_ad_categories: special_ad_categories(cm["special_ad_categories"]),
+            "is_adset_budget_sharing_enabled": False,
         }
         if dry_run:
             print("CAMPAIGN:", json.dumps(c_params, indent=2))
