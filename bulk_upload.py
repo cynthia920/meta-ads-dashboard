@@ -69,10 +69,18 @@ def special_ad_categories(value):
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
-def build_targeting(row):
+def build_targeting(row, dry_run=False):
     saved_id = (row.get("saved_audience_id") or "").strip()
     if saved_id:
-        return {"saved_audience_id": saved_id}
+        if dry_run:
+            return {"saved_audience_id": saved_id}
+        from facebook_business.adobjects.savedaudience import SavedAudience
+
+        sa = SavedAudience(saved_id).api_get(fields=["targeting"])
+        targeting = sa.get("targeting")
+        if not targeting:
+            sys.exit(f"Saved audience {saved_id} has no targeting spec — open it in Ads Manager and check it has a location.")
+        return targeting
     return {
         "geo_locations": {"countries": [c.strip() for c in row["countries"].split(",") if c.strip()]},
         "age_min": int(row["age_min"]),
@@ -124,7 +132,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                 AdSet.Field.daily_budget: int(float(am["daily_budget_usd"]) * 100),
                 AdSet.Field.billing_event: am["billing_event"],
                 AdSet.Field.optimization_goal: am["optimization_goal"],
-                AdSet.Field.targeting: build_targeting(am),
+                AdSet.Field.targeting: build_targeting(am, dry_run=dry_run),
                 AdSet.Field.status: PAUSED,
             }
             if dry_run:
