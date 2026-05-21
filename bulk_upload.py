@@ -1,4 +1,4 @@
-"""Bulk-upload Meta ads from a CSV template.
+"""Bulk-upload Meta ads from a CSV or XLSX template.
 
 All entities are created with status=PAUSED so nothing spends money until you
 review and activate in Ads Manager.
@@ -9,6 +9,7 @@ Env vars required:
 
 Usage:
   python bulk_upload.py template.csv
+  python bulk_upload.py template.xlsx
   python bulk_upload.py template.csv --dry-run
 """
 
@@ -30,8 +31,21 @@ PAUSED = "PAUSED"
 
 
 def load_rows(path):
-    with open(path, newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
+    if path.lower().endswith(".xlsx"):
+        from openpyxl import load_workbook
+
+        wb = load_workbook(path, data_only=True)
+        ws = wb.active
+        it = ws.iter_rows(values_only=True)
+        headers = [str(h) if h is not None else "" for h in next(it)]
+        rows = []
+        for raw in it:
+            if all(v is None or v == "" for v in raw):
+                continue
+            rows.append({h: ("" if v is None else str(v)) for h, v in zip(headers, raw)})
+    else:
+        with open(path, newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
     if not rows:
         sys.exit(f"No rows in {path}")
     return rows
@@ -56,6 +70,9 @@ def special_ad_categories(value):
 
 
 def build_targeting(row):
+    saved_id = (row.get("saved_audience_id") or "").strip()
+    if saved_id:
+        return {"saved_audience_id": saved_id}
     return {
         "geo_locations": {"countries": [c.strip() for c in row["countries"].split(",") if c.strip()]},
         "age_min": int(row["age_min"]),
