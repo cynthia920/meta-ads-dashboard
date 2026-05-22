@@ -377,6 +377,7 @@ def build_creative_spec(row, account=None, dry_run=False):
             "video_id": video_id,
             "title": row["headline"],
             "message": row["primary_text"],
+            "link_description": row.get("description") or "",
             "call_to_action": cta_obj,
             "image_url": image_url,
         }
