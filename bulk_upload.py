@@ -113,6 +113,16 @@ def _build_cta(row):
     sys.exit(f"Ad {row.get('ad_name')!r}: unknown browser_addon={addon!r}.")
 
 
+def _cell_to_str(v):
+    """Excel stores numbers as floats; a 15-digit page_id read back is e.g.
+    445963815277238.0, which Meta rejects. Strip the .0 for whole-number floats."""
+    if v is None:
+        return ""
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return str(v)
+
+
 def load_rows(path):
     if path.lower().endswith(".xlsx"):
         from openpyxl import load_workbook
@@ -125,7 +135,7 @@ def load_rows(path):
         for raw in it:
             if all(v is None or v == "" for v in raw):
                 continue
-            rows.append({h: ("" if v is None else str(v)) for h, v in zip(headers, raw)})
+            rows.append({h: _cell_to_str(v) for h, v in zip(headers, raw)})
     else:
         with open(path, newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
