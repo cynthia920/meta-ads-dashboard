@@ -101,6 +101,11 @@ GENDERS = ["", "1", "2", "1,2"]
 # CALL and WHATSAPP also require phone_number to be filled.
 BROWSER_ADDONS = ["", "NONE", "CALL", "MESSENGER", "WHATSAPP"]
 
+# Master switch for Meta's Advantage+ creative enhancements (Standard
+# Enhancements bundle). ENABLED = opt-in, DISABLED = opt-out, blank =
+# leave at Meta's account default.
+ADVANTAGE_PLUS_CREATIVE = ["", "ENABLED", "DISABLED"]
+
 CTAS = [
     "SHOP_NOW",
     "LEARN_MORE",
@@ -187,4 +192,5 @@ COLUMNS = [
     ("browser_addon", BROWSER_ADDONS),
     ("phone_number", None),
     ("conversion_domain", None),
+    ("advantage_plus_creative", ADVANTAGE_PLUS_CREATIVE),
 ]

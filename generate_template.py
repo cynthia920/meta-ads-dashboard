@@ -73,6 +73,7 @@ SAMPLE_ROW = {
     "browser_addon": "",
     "phone_number": "",
     "conversion_domain": "example.com",
+    "advantage_plus_creative": "",
 }
 
 MAX_ROWS = 500

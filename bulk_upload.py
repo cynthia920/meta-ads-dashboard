@@ -437,6 +437,13 @@ def build_creative_spec(row, account=None, dry_run=False):
     url_tags = _get(row, "url_tags")
     if url_tags:
         spec["url_tags"] = url_tags
+
+    advantage = _get(row, "advantage_plus_creative").upper()
+    if advantage in ("ENABLED", "DISABLED"):
+        enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
+        spec["degrees_of_freedom_spec"] = {
+            "creative_features_spec": {"standard_enhancements": {"enroll_status": enroll}}
+        }
     return spec
 
 
