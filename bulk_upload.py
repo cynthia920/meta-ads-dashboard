@@ -441,18 +441,16 @@ def build_creative_spec(row, account=None, dry_run=False):
     advantage = _get(row, "advantage_plus_creative").upper()
     if advantage in ("ENABLED", "DISABLED"):
         enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
-        # Meta deprecated the standard_enhancements master switch (error
-        # subcode 3858504) — must enroll each feature individually.
+        # Meta deprecated standard_enhancements and renamed every feature
+        # to UPPERCASE-style keys; the valid set varies by ad / account.
+        # These three are broadly applicable to both image and video ads;
+        # catalog-only features (PRODUCT_BROWSING, STANDARD_ENHANCEMENTS_
+        # CATALOG, etc.) are intentionally omitted because they error on
+        # non-catalog ads.
         features = [
-            "image_brightness_and_contrast",
-            "image_enhancement",
-            "image_touchups",
-            "image_uncrop",
-            "image_templates",
-            "text_optimizations",
-            "video_auto_crop",
-            "video_touchups",
-            "video_filtering",
+            "IG_VIDEO_NATIVE_SUBTITLE",
+            "IMAGE_ANIMATION",
+            "TEXT_OVERLAY_TRANSLATION",
         ]
         spec["degrees_of_freedom_spec"] = {
             "creative_features_spec": {
