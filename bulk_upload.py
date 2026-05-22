@@ -441,8 +441,23 @@ def build_creative_spec(row, account=None, dry_run=False):
     advantage = _get(row, "advantage_plus_creative").upper()
     if advantage in ("ENABLED", "DISABLED"):
         enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
+        # Meta deprecated the standard_enhancements master switch (error
+        # subcode 3858504) — must enroll each feature individually.
+        features = [
+            "image_brightness_and_contrast",
+            "image_enhancement",
+            "image_touchups",
+            "image_uncrop",
+            "image_templates",
+            "text_optimizations",
+            "video_auto_crop",
+            "video_touchups",
+            "video_filtering",
+        ]
         spec["degrees_of_freedom_spec"] = {
-            "creative_features_spec": {"standard_enhancements": {"enroll_status": enroll}}
+            "creative_features_spec": {
+                f: {"enroll_status": enroll} for f in features
+            }
         }
     return spec
 
