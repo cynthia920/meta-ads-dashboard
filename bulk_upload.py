@@ -264,12 +264,15 @@ def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, exist
             params[AdSet.Field.daily_budget] = int(float(daily_budget) * 100)
         if lifetime_budget:
             params[AdSet.Field.lifetime_budget] = int(float(lifetime_budget) * 100)
-        bid_amount = _get(row, "bid_amount_usd")
-        if bid_amount:
-            params[AdSet.Field.bid_amount] = int(float(bid_amount) * 100)
-        roas_floor = _get(row, "bid_roas_floor")
-        if roas_floor:
-            params["bid_constraints"] = {"roas_average_floor": int(float(roas_floor) * 100)}
+
+    # bid_amount and bid_roas_floor live on the ad set regardless of CBO/ABO —
+    # CBO campaigns still let each ad set carry its own cap / ROAS floor.
+    bid_amount = _get(row, "bid_amount_usd")
+    if bid_amount:
+        params[AdSet.Field.bid_amount] = int(float(bid_amount) * 100)
+    roas_floor = _get(row, "bid_roas_floor")
+    if roas_floor:
+        params["bid_constraints"] = {"roas_average_floor": int(float(roas_floor) * 100)}
 
     daily_cap = _get(row, "daily_spend_cap_usd")
     if daily_cap:
