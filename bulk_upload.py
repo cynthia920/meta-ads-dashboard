@@ -120,6 +120,30 @@ def _video_thumbnail(video_id, dry_run):
     )
 
 
+def _wait_for_video_ready(video_id, dry_run, max_wait_seconds=180):
+    """Poll a video's processing status until Meta marks it ready, so the
+    subsequent /adcreatives call doesn't fail with subcode 1885252 'Video
+    not ready for use in an ad' (is_transient=true)."""
+    if dry_run:
+        return
+    from facebook_business.adobjects.advideo import AdVideo
+    import time
+
+    deadline = time.time() + max_wait_seconds
+    while time.time() < deadline:
+        v = AdVideo(video_id).api_get(fields=["status"])
+        status = (v.get("status") or {}).get("video_status")
+        if status == "ready":
+            return
+        if status in ("error", "expired"):
+            sys.exit(f"Video {video_id} failed processing on Meta's side (status={status!r}).")
+        time.sleep(5)
+    sys.exit(
+        f"Video {video_id} still not ready after {max_wait_seconds}s — Meta is slow processing it. "
+        "Re-run the script in a minute or two."
+    )
+
+
 def _build_cta(row):
     """Resolve the call_to_action object from the cta + browser_addon columns.
     browser_addon, when set to anything other than blank/NONE, overrides cta."""
@@ -129,6 +153,8 @@ def _build_cta(row):
     phone = (row.get("phone_number") or "").strip()
     page_id = (row.get("page_id") or "").strip()
     if addon in ("", "NONE"):
+        if not link_url and cta != "NO_BUTTON":
+            sys.exit(f"Ad {row.get('ad_name')!r}: link_url is empty. Fill in the link_url column.")
         return {"type": cta, "value": {"link": link_url}}
     if addon == "CALL":
         if not phone:
@@ -371,6 +397,7 @@ def build_creative_spec(row, account=None, dry_run=False):
     if _is_multivariant(row):
         spec = _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, account, dry_run)
     elif video_id:
+        _wait_for_video_ready(video_id, dry_run)
         if not image_url:
             image_url = _video_thumbnail(video_id, dry_run)
         video_data = {
