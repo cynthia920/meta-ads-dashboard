@@ -17,6 +17,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from template_options import COLUMNS
 
 SAMPLE_ROW = {
+    "existing_campaign_id": "",
     "campaign_name": "Spring Launch",
     "campaign_objective": "OUTCOME_TRAFFIC",
     "buying_type": "AUCTION",
@@ -27,6 +28,7 @@ SAMPLE_ROW = {
     "campaign_spend_cap_usd": "",
     "campaign_start_time": "",
     "campaign_stop_time": "",
+    "existing_adset_id": "",
     "adset_name": "US Broad 25-54",
     "daily_budget_usd": 50,
     "lifetime_budget_usd": "",
@@ -56,6 +58,7 @@ SAMPLE_ROW = {
     "excluded_custom_audience_ids": "",
     "page_id": "1234567890",
     "instagram_actor_id": "",
+    "threads_user_id": "",
     "ad_name": "Ad A - Static",
     "image_url": "https://example.com/creative-a.jpg",
     "video_id": "",
@@ -63,8 +66,11 @@ SAMPLE_ROW = {
     "headline": "Spring is here",
     "description": "Shop the drop",
     "link_url": "https://example.com/spring",
+    "display_link": "example.com",
     "url_tags": "utm_source=facebook&utm_medium=cpc&utm_campaign=spring",
     "cta": "SHOP_NOW",
+    "browser_addon": "",
+    "phone_number": "",
     "conversion_domain": "example.com",
 }
 

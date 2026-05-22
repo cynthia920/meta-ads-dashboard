@@ -61,6 +61,7 @@ Same flow without the browser:
 
 | Column | Required? | Notes |
 | --- | --- | --- |
+| `existing_campaign_id` | optional | If set, skip campaign creation and attach new ad sets under this existing campaign. All other campaign columns on the row are ignored. Get the ID from the Ads Manager URL or Business Suite. |
 | `campaign_name` | yes | Group key — rows sharing this become one campaign |
 | `campaign_objective` | yes | Dropdown: `OUTCOME_AWARENESS`, `OUTCOME_TRAFFIC`, `OUTCOME_ENGAGEMENT`, `OUTCOME_LEADS`, `OUTCOME_APP_PROMOTION`, `OUTCOME_SALES` |
 | `buying_type` | yes | Dropdown: `AUCTION` (default), `RESERVED` |
@@ -76,6 +77,7 @@ Same flow without the browser:
 
 | Column | Required? | Notes |
 | --- | --- | --- |
+| `existing_adset_id` | optional | If set, skip ad set creation and attach new ads under this existing ad set. All other ad-set columns on the row are ignored. |
 | `adset_name` | yes | Group key — rows sharing campaign + adset name become one ad set |
 | `daily_budget_usd` | ABO | Dollars. Required for ABO. Leave blank if the parent campaign uses CBO. Mutually exclusive with `lifetime_budget_usd`. |
 | `lifetime_budget_usd` | ABO | Dollars. Lifetime alternative to `daily_budget_usd`. Requires `end_time`. |
@@ -113,16 +115,20 @@ Same flow without the browser:
 | Column | Required? | Notes |
 | --- | --- | --- |
 | `page_id` | yes | Facebook Page ID the ad runs from. Must be connected to the ad account. |
-| `instagram_actor_id` | optional | Instagram account ID to also run the ad from. Blank = Facebook only. |
+| `instagram_actor_id` | optional | Instagram Business Account ID to also run the ad from. Blank = Facebook only. Not the same as the Page ID — fetch via `GET <page_id>?fields=instagram_business_account` in the Graph Explorer. |
+| `threads_user_id` | optional | Threads profile ID to also run the ad from. |
 | `ad_name` | yes | Unique within an ad set |
-| `image_url` | image OR video | Publicly fetchable image URL. Drive sharing links don't work — use Imgur, your CDN, S3, etc. Used as the video thumbnail when `video_id` is also set. |
+| `image_url` | image OR video | Publicly fetchable image URL. **Google Drive links** in any of the standard formats (`drive.google.com/file/d/<ID>/view`, `?id=<ID>`, etc.) are auto-converted to the `lh3.googleusercontent.com/d/<ID>` form that Meta can actually fetch. Used as the video thumbnail when `video_id` is also set. |
 | `video_id` | image OR video | Meta video ID for a video ad. When set, the ad becomes a video ad instead of a static image ad. |
-| `primary_text` | yes | Body copy above the ad |
-| `headline` | yes | Headline below the image / video title |
-| `description` | yes (image ads) | Link description (small grey text under the headline). Ignored for video ads. |
+| `primary_text` | yes | Body copy above the ad. **Multiple variants:** separate with `\|` (e.g. `Buy now!\|Limited time!`) and the script switches the creative to `asset_feed_spec` so Meta can A/B test them. |
+| `headline` | yes | Headline below the image / video title. Same `\|`-separation rule for variants. |
+| `description` | yes (image ads) | Link description (small grey text under the headline). Same `\|`-separation rule for variants. Ignored for video ads. |
 | `link_url` | yes | Landing page URL |
+| `display_link` | optional | The URL displayed on the ad (cleaner than `link_url`, e.g. `example.com` while `link_url` is a long tracking URL). |
 | `url_tags` | optional | UTM query params, e.g. `utm_source=facebook&utm_medium=cpc&utm_campaign=spring`. Auto-appended to clicks. |
-| `cta` | yes | Dropdown: `SHOP_NOW`, `LEARN_MORE`, `SIGN_UP`, `SUBSCRIBE`, `DOWNLOAD`, `BOOK_TRAVEL`, `CONTACT_US`, `GET_OFFER`, `GET_QUOTE`, `APPLY_NOW`, `ORDER_NOW`, `DONATE_NOW`, `INSTALL_APP`, `USE_APP`, `WATCH_MORE`, `LISTEN_NOW`, `SEND_MESSAGE`, `MESSAGE_PAGE`, `GET_DIRECTIONS`, `CALL_NOW`, `NO_BUTTON` |
+| `cta` | yes | Dropdown: `SHOP_NOW`, `LEARN_MORE`, `SIGN_UP`, `SUBSCRIBE`, `DOWNLOAD`, `BOOK_TRAVEL`, `CONTACT_US`, `GET_OFFER`, `GET_QUOTE`, `APPLY_NOW`, `ORDER_NOW`, `DONATE_NOW`, `INSTALL_APP`, `USE_APP`, `WATCH_MORE`, `LISTEN_NOW`, `SEND_MESSAGE`, `MESSAGE_PAGE`, `GET_DIRECTIONS`, `CALL_NOW`, `NO_BUTTON`. Overridden by `browser_addon` when that is set to anything other than blank/`NONE`. |
+| `browser_addon` | optional | Dropdown: blank or `NONE` (use `cta` as-is), `CALL` (replaces CTA with click-to-call — requires `phone_number`), `MESSENGER` (replaces CTA with click-to-Messenger using `page_id`), `WHATSAPP` (replaces CTA with click-to-WhatsApp — requires `phone_number`). |
+| `phone_number` | conditional | Required when `browser_addon` is `CALL` or `WHATSAPP`. For WhatsApp use international format without `+` (e.g. `15551234567`). |
 | `conversion_domain` | optional | The domain conversions are attributed to (e.g. `example.com`). Recommended for `OUTCOME_SALES`. |
 
 ### Finding your Saved Audience ID

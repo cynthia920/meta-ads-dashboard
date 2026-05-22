@@ -97,6 +97,10 @@ PACING_TYPES = ["", "standard", "no_pacing"]
 # Meta gender codes: 1 = male, 2 = female. Blank = all.
 GENDERS = ["", "1", "2", "1,2"]
 
+# "Browser add-on" overlay on website ads. When set, overrides the cta column.
+# CALL and WHATSAPP also require phone_number to be filled.
+BROWSER_ADDONS = ["", "NONE", "CALL", "MESSENGER", "WHATSAPP"]
+
 CTAS = [
     "SHOP_NOW",
     "LEARN_MORE",
@@ -124,6 +128,7 @@ CTAS = [
 # (column_name, dropdown_options or None)
 COLUMNS = [
     # campaign
+    ("existing_campaign_id", None),
     ("campaign_name", None),
     ("campaign_objective", CAMPAIGN_OBJECTIVES),
     ("buying_type", BUYING_TYPES),
@@ -135,6 +140,7 @@ COLUMNS = [
     ("campaign_start_time", None),
     ("campaign_stop_time", None),
     # ad set
+    ("existing_adset_id", None),
     ("adset_name", None),
     ("daily_budget_usd", None),
     ("lifetime_budget_usd", None),
@@ -166,6 +172,7 @@ COLUMNS = [
     # ad / creative
     ("page_id", None),
     ("instagram_actor_id", None),
+    ("threads_user_id", None),
     ("ad_name", None),
     ("image_url", None),
     ("video_id", None),
@@ -173,7 +180,10 @@ COLUMNS = [
     ("headline", None),
     ("description", None),
     ("link_url", None),
+    ("display_link", None),
     ("url_tags", None),
     ("cta", CTAS),
+    ("browser_addon", BROWSER_ADDONS),
+    ("phone_number", None),
     ("conversion_domain", None),
 ]

@@ -17,7 +17,9 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
+import urllib.request
 from collections import defaultdict
 
 from facebook_business.adobjects.ad import Ad
@@ -28,6 +30,87 @@ from facebook_business.adobjects.campaign import Campaign
 from facebook_business.api import FacebookAdsApi
 
 PAUSED = "PAUSED"
+
+
+def convert_drive_url(url):
+    """Rewrite Google Drive sharing links to the lh3.googleusercontent.com form
+    Meta can actually fetch. Pass-through for anything that isn't a Drive URL.
+
+    Recognized forms:
+      https://drive.google.com/file/d/FILE_ID/view?...
+      https://drive.google.com/open?id=FILE_ID
+      https://drive.google.com/uc?id=FILE_ID&...
+      https://lh3.googleusercontent.com/d/FILE_ID  (already converted, no-op)
+    """
+    if not url:
+        return url
+    m = re.search(r"drive\.google\.com/file/d/([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://lh3.googleusercontent.com/d/{m.group(1)}"
+    m = re.search(r"drive\.google\.com/(?:open|uc)\?(?:.*&)?id=([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://lh3.googleusercontent.com/d/{m.group(1)}"
+    return url
+
+
+def _split_variants(value):
+    """Pipe-separated text becomes a list of variants. Single value stays single."""
+    if not value:
+        return []
+    return [v.strip() for v in value.split("|") if v.strip()]
+
+
+def _is_multivariant(row):
+    for k in ("primary_text", "headline", "description"):
+        if "|" in (row.get(k) or ""):
+            return True
+    return False
+
+
+def _upload_image(account, url, dry_run):
+    """Upload an image to /act_{id}/adimages and return its hash. Required
+    for asset_feed_spec (multi-variant) creatives — link_data accepts a raw
+    URL via `picture`, but asset_feed_spec only takes hashes."""
+    if dry_run:
+        return f"DRY_HASH_{abs(hash(url)) % 10**10}"
+    from facebook_business.adobjects.adimage import AdImage
+
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = resp.read()
+    image = AdImage(parent_id=account.get_id_assured())
+    image[AdImage.Field.filename] = "image.jpg"
+    image.remote_create(params={"bytes": data})
+    return image[AdImage.Field.hash]
+
+
+def _build_cta(row):
+    """Resolve the call_to_action object from the cta + browser_addon columns.
+    browser_addon, when set to anything other than blank/NONE, overrides cta."""
+    cta = (row.get("cta") or "").strip()
+    link_url = (row.get("link_url") or "").strip()
+    addon = (row.get("browser_addon") or "").strip().upper()
+    phone = (row.get("phone_number") or "").strip()
+    page_id = (row.get("page_id") or "").strip()
+    if addon in ("", "NONE"):
+        return {"type": cta, "value": {"link": link_url}}
+    if addon == "CALL":
+        if not phone:
+            sys.exit(f"Ad {row.get('ad_name')!r}: browser_addon=CALL needs phone_number.")
+        return {"type": "CALL_NOW", "value": {"link": f"tel:{phone}"}}
+    if addon == "WHATSAPP":
+        if not phone:
+            sys.exit(f"Ad {row.get('ad_name')!r}: browser_addon=WHATSAPP needs phone_number (international format, no '+').")
+        return {
+            "type": "WHATSAPP_MESSAGE",
+            "value": {"app_destination": "WHATSAPP", "link": f"https://wa.me/{phone}"},
+        }
+    if addon == "MESSENGER":
+        return {
+            "type": "MESSAGE_PAGE",
+            "value": {"app_destination": "MESSENGER", "link": f"https://m.me/{page_id}"},
+        }
+    sys.exit(f"Ad {row.get('ad_name')!r}: unknown browser_addon={addon!r}.")
 
 
 def load_rows(path):
@@ -223,21 +306,29 @@ def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None):
     return params
 
 
-def build_creative_spec(row):
+def build_creative_spec(row, account=None, dry_run=False):
     video_id = _get(row, "video_id")
-    image_url = _get(row, "image_url")
+    image_url = convert_drive_url(_get(row, "image_url"))
     if not video_id and not image_url:
         sys.exit(f"Ad {row.get('ad_name')!r}: needs image_url or video_id.")
-    if video_id:
+    cta_obj = _build_cta(row)
+    display_link = _get(row, "display_link")
+
+    if _is_multivariant(row):
+        spec = _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, account, dry_run)
+    elif video_id:
         video_data = {
             "video_id": video_id,
             "title": row["headline"],
             "message": row["primary_text"],
-            "call_to_action": {"type": row["cta"], "value": {"link": row["link_url"]}},
+            "call_to_action": cta_obj,
         }
         if image_url:
             video_data["image_url"] = image_url
-        story = {"page_id": row["page_id"], "video_data": video_data}
+        spec = {
+            "name": f"Creative - {row['ad_name']}",
+            "object_story_spec": {"page_id": row["page_id"], "video_data": video_data},
+        }
     else:
         link_data = {
             "link": row["link_url"],
@@ -245,20 +336,54 @@ def build_creative_spec(row):
             "name": row["headline"],
             "description": row["description"],
             "picture": image_url,
-            "call_to_action": {"type": row["cta"], "value": {"link": row["link_url"]}},
+            "call_to_action": cta_obj,
         }
-        story = {"page_id": row["page_id"], "link_data": link_data}
-    spec = {
-        "name": f"Creative - {row['ad_name']}",
-        "object_story_spec": story,
-    }
+        if display_link:
+            link_data["caption"] = display_link
+        spec = {
+            "name": f"Creative - {row['ad_name']}",
+            "object_story_spec": {"page_id": row["page_id"], "link_data": link_data},
+        }
+
     instagram_actor = _get(row, "instagram_actor_id")
     if instagram_actor:
         spec["object_story_spec"]["instagram_user_id"] = instagram_actor
+    threads_user = _get(row, "threads_user_id")
+    if threads_user:
+        spec["object_story_spec"]["threads_user_id"] = threads_user
     url_tags = _get(row, "url_tags")
     if url_tags:
         spec["url_tags"] = url_tags
     return spec
+
+
+def _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, account, dry_run):
+    """Multi-variant creative using asset_feed_spec. Triggered when any of
+    primary_text / headline / description contains '|'."""
+    bodies = _split_variants(row.get("primary_text")) or ([row["primary_text"]] if row.get("primary_text") else [])
+    titles = _split_variants(row.get("headline")) or ([row["headline"]] if row.get("headline") else [])
+    descriptions = _split_variants(row.get("description")) or ([row["description"]] if row.get("description") else [])
+
+    asset_feed_spec = {
+        "bodies": [{"text": t} for t in bodies],
+        "titles": [{"text": t} for t in titles],
+        "descriptions": [{"text": t} for t in descriptions],
+        "link_urls": [{"website_url": row["link_url"], **({"display_url": display_link} if display_link else {})}],
+        "call_to_action_types": [cta_obj["type"]],
+    }
+    if video_id:
+        asset_feed_spec["videos"] = [{"video_id": video_id}]
+        asset_feed_spec["ad_formats"] = ["SINGLE_VIDEO"]
+    else:
+        image_hash = _upload_image(account, image_url, dry_run)
+        asset_feed_spec["images"] = [{"hash": image_hash}]
+        asset_feed_spec["ad_formats"] = ["SINGLE_IMAGE"]
+
+    return {
+        "name": f"Creative - {row['ad_name']}",
+        "object_story_spec": {"page_id": row["page_id"]},
+        "asset_feed_spec": asset_feed_spec,
+    }
 
 
 def _cleanup(created, account):
@@ -283,30 +408,40 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
     try:
         for c_name, adsets in tree.items():
             cm = campaign_meta[c_name]
-            c_params = build_campaign_params(cm, c_name)
-            if dry_run:
-                print("CAMPAIGN:", json.dumps(c_params, indent=2))
-                campaign_id = f"DRY_CAMPAIGN_{c_name}"
+            existing_campaign = _get(cm, "existing_campaign_id")
+            if existing_campaign:
+                campaign_id = existing_campaign
+                print(f"Reusing existing campaign {campaign_id}: {c_name}")
             else:
-                campaign = account.create_campaign(params=c_params)
-                campaign_id = campaign["id"]
-                created.append(("campaign", campaign_id))
-                print(f"Created campaign {campaign_id}: {c_name}")
+                c_params = build_campaign_params(cm, c_name)
+                if dry_run:
+                    print("CAMPAIGN:", json.dumps(c_params, indent=2))
+                    campaign_id = f"DRY_CAMPAIGN_{c_name}"
+                else:
+                    campaign = account.create_campaign(params=c_params)
+                    campaign_id = campaign["id"]
+                    created.append(("campaign", campaign_id))
+                    print(f"Created campaign {campaign_id}: {c_name}")
 
             for a_name, ads in adsets.items():
                 am = adset_meta[(c_name, a_name)]
-                as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm)
-                if dry_run:
-                    print("AD SET:", json.dumps(as_params, indent=2, default=str))
-                    adset_id = f"DRY_ADSET_{a_name}"
+                existing_adset = _get(am, "existing_adset_id")
+                if existing_adset:
+                    adset_id = existing_adset
+                    print(f"  Reusing existing ad set {adset_id}: {a_name}")
                 else:
-                    adset = account.create_ad_set(params=as_params)
-                    adset_id = adset["id"]
-                    created.append(("adset", adset_id))
-                    print(f"  Created ad set {adset_id}: {a_name}")
+                    as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm)
+                    if dry_run:
+                        print("AD SET:", json.dumps(as_params, indent=2, default=str))
+                        adset_id = f"DRY_ADSET_{a_name}"
+                    else:
+                        adset = account.create_ad_set(params=as_params)
+                        adset_id = adset["id"]
+                        created.append(("adset", adset_id))
+                        print(f"  Created ad set {adset_id}: {a_name}")
 
                 for ad_row in ads:
-                    creative_spec = build_creative_spec(ad_row)
+                    creative_spec = build_creative_spec(ad_row, account=account, dry_run=dry_run)
                     if dry_run:
                         print("CREATIVE:", json.dumps(creative_spec, indent=2))
                         creative_id = f"DRY_CREATIVE_{ad_row['ad_name']}"
