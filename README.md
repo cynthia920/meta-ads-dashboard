@@ -141,5 +141,5 @@ the `saved_audience_id` column.
 
 - Every campaign, ad set, and ad is created with `status=PAUSED`.
 - Use `--dry-run` (or the Dry-run checkbox in the web UI) first to inspect the exact payloads.
-- **Rollback on failure**: if any step fails partway through a real upload, the script deletes the campaign / ad sets / ads it created in that run so you don't get orphan entities in Ads Manager.
-- The script never modifies entities it didn't create.
+- **Rollback on failure**: if any step fails partway through a real upload, the script deletes the campaign / ad sets / ads **it created in that run** so you don't get orphan entities in Ads Manager.
+- The script never modifies or deletes entities it didn't create. Pre-existing campaigns / ad sets you referenced via `existing_campaign_id` / `existing_adset_id` are explicitly protected from the rollback path — even if the upload fails mid-flight, only the new entities created during this run are removed.

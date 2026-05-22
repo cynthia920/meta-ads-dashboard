@@ -396,10 +396,19 @@ def _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, 
     }
 
 
-def _cleanup(created, account):
+def _cleanup(created, account, protected_ids=()):
     """On failure, delete entities we created during this run so the user
-    doesn't have to manually clean up orphan campaigns / ad sets / ads."""
+    doesn't have to manually clean up orphan campaigns / ad sets / ads.
+
+    `protected_ids` lists entity IDs the user referenced via
+    existing_campaign_id / existing_adset_id. They are pre-existing and we
+    refuse to delete them under any circumstance, even as a safeguard
+    against future bugs in how `created` is populated."""
+    protected = set(protected_ids)
     for kind, obj_id in reversed(created):
+        if obj_id in protected:
+            print(f"  Refusing to delete pre-existing {kind} {obj_id}")
+            continue
         try:
             if kind == "ad":
                 Ad(obj_id).api_delete()
@@ -415,12 +424,14 @@ def _cleanup(created, account):
 def upload(account, tree, campaign_meta, adset_meta, dry_run):
     results = []
     created = []
+    protected_ids = set()
     try:
         for c_name, adsets in tree.items():
             cm = campaign_meta[c_name]
             existing_campaign = _get(cm, "existing_campaign_id")
             if existing_campaign:
                 campaign_id = existing_campaign
+                protected_ids.add(campaign_id)
                 print(f"Reusing existing campaign {campaign_id}: {c_name}")
             else:
                 c_params = build_campaign_params(cm, c_name)
@@ -438,6 +449,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                 existing_adset = _get(am, "existing_adset_id")
                 if existing_adset:
                     adset_id = existing_adset
+                    protected_ids.add(adset_id)
                     print(f"  Reusing existing ad set {adset_id}: {a_name}")
                 else:
                     as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm, existing_campaign=bool(existing_campaign))
@@ -481,7 +493,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
     except Exception:
         if not dry_run and created:
             print("\nUpload failed mid-flight — rolling back created entities:")
-            _cleanup(created, account)
+            _cleanup(created, account, protected_ids=protected_ids)
         raise
     return results
 
