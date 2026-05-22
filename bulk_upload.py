@@ -225,7 +225,7 @@ def build_campaign_params(row, name):
     return params
 
 
-def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None):
+def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, existing_campaign=False):
     cbo = _is_cbo(campaign_row) if campaign_row else False
     daily_budget = _get(row, "daily_budget_usd")
     lifetime_budget = _get(row, "lifetime_budget_usd")
@@ -236,7 +236,7 @@ def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None):
         )
     if not cbo and daily_budget and lifetime_budget:
         sys.exit(f"Ad set {name!r}: set daily_budget_usd OR lifetime_budget_usd, not both.")
-    if not cbo and not daily_budget and not lifetime_budget:
+    if not existing_campaign and not cbo and not daily_budget and not lifetime_budget:
         sys.exit(f"Ad set {name!r}: needs daily_budget_usd or lifetime_budget_usd (ABO), or a campaign-level budget on the campaign (CBO).")
 
     bid_strategy = _get(row, "bid_strategy") or "LOWEST_COST_WITHOUT_CAP"
@@ -430,7 +430,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                     adset_id = existing_adset
                     print(f"  Reusing existing ad set {adset_id}: {a_name}")
                 else:
-                    as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm)
+                    as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm, existing_campaign=bool(existing_campaign))
                     if dry_run:
                         print("AD SET:", json.dumps(as_params, indent=2, default=str))
                         adset_id = f"DRY_ADSET_{a_name}"
