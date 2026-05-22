@@ -358,9 +358,9 @@ def build_creative_spec(row, account=None, dry_run=False):
             "object_story_spec": {"page_id": row["page_id"], "link_data": link_data},
         }
 
-    instagram_actor = _get(row, "instagram_actor_id")
-    if instagram_actor:
-        spec["object_story_spec"]["instagram_user_id"] = instagram_actor
+    instagram_user = _get(row, "instagram_user_id")
+    if instagram_user:
+        spec["object_story_spec"]["instagram_user_id"] = instagram_user
     threads_user = _get(row, "threads_user_id")
     if threads_user:
         spec["object_story_spec"]["threads_user_id"] = threads_user

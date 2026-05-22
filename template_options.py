@@ -171,7 +171,7 @@ COLUMNS = [
     ("excluded_custom_audience_ids", None),
     # ad / creative
     ("page_id", None),
-    ("instagram_actor_id", None),
+    ("instagram_user_id", None),
     ("threads_user_id", None),
     ("ad_name", None),
     ("image_url", None),

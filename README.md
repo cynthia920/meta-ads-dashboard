@@ -115,7 +115,7 @@ Same flow without the browser:
 | Column | Required? | Notes |
 | --- | --- | --- |
 | `page_id` | yes | Facebook Page ID the ad runs from. Must be connected to the ad account. |
-| `instagram_actor_id` | optional | Instagram Business Account ID to also run the ad from. Blank = Facebook only. Not the same as the Page ID — fetch via `GET <page_id>?fields=instagram_business_account` in the Graph Explorer. |
+| `instagram_user_id` | optional | Instagram Business Account ID to also run the ad from. Blank = Facebook only. Not the same as the Page ID — fetch via `GET <page_id>?fields=instagram_business_account` in the Graph Explorer. |
 | `threads_user_id` | optional | Threads profile ID to also run the ad from. |
 | `ad_name` | yes | Unique within an ad set |
 | `image_url` | image OR video | Publicly fetchable image URL. **Google Drive links** in any of the standard formats (`drive.google.com/file/d/<ID>/view`, `?id=<ID>`, etc.) are auto-converted to the `lh3.googleusercontent.com/d/<ID>` form that Meta can actually fetch. Used as the video thumbnail when `video_id` is also set. |

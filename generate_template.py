@@ -57,7 +57,7 @@ SAMPLE_ROW = {
     "included_custom_audience_ids": "",
     "excluded_custom_audience_ids": "",
     "page_id": "1234567890",
-    "instagram_actor_id": "",
+    "instagram_user_id": "",
     "threads_user_id": "",
     "ad_name": "Ad A - Static",
     "image_url": "https://example.com/creative-a.jpg",
