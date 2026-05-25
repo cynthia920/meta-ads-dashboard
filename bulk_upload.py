@@ -31,6 +31,38 @@ from facebook_business.api import FacebookAdsApi
 
 PAUSED = "PAUSED"
 
+# Meta amounts are sent in the ad account's atomic currency unit
+# (e.g. cents for USD, won for KRW). These three lists categorize ISO
+# 4217 currency codes by how many minor units they have. Anything not
+# listed defaults to 2 decimals (multiplier=100), which matches USD/EUR
+# and the majority of other currencies.
+_ZERO_DECIMAL_CURRENCIES = {
+    "BIF", "CLP", "COP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW",
+    "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+}
+_THREE_DECIMAL_CURRENCIES = {"BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND"}
+
+
+def _currency_multiplier(currency):
+    """Atomic-unit multiplier for the ad account's currency. USD 50.00
+    becomes 5000; KRW 50000 becomes 50000; BHD 50.000 becomes 50000."""
+    c = (currency or "").upper()
+    if c in _ZERO_DECIMAL_CURRENCIES:
+        return 1
+    if c in _THREE_DECIMAL_CURRENCIES:
+        return 1000
+    return 100
+
+
+def _money(row, key):
+    """Read a money cell, accepting the legacy `_usd` suffix as a
+    fallback so spreadsheets filled before the currency rename still
+    work."""
+    val = _get(row, key)
+    if val:
+        return val
+    return _get(row, key + "_usd")
+
 
 def convert_drive_url(url):
     """Rewrite Google Drive sharing links to the lh3.googleusercontent.com form
@@ -284,10 +316,10 @@ def _get(row, key, default=""):
 
 
 def _is_cbo(campaign_row):
-    return bool(_get(campaign_row, "campaign_daily_budget_usd") or _get(campaign_row, "campaign_lifetime_budget_usd"))
+    return bool(_money(campaign_row, "campaign_daily_budget") or _money(campaign_row, "campaign_lifetime_budget"))
 
 
-def build_campaign_params(row, name):
+def build_campaign_params(row, name, multiplier=100):
     params = {
         Campaign.Field.name: name,
         Campaign.Field.objective: row["campaign_objective"],
@@ -299,21 +331,21 @@ def build_campaign_params(row, name):
     if buying:
         params[Campaign.Field.buying_type] = buying
 
-    daily = _get(row, "campaign_daily_budget_usd")
-    lifetime = _get(row, "campaign_lifetime_budget_usd")
+    daily = _money(row, "campaign_daily_budget")
+    lifetime = _money(row, "campaign_lifetime_budget")
     if daily and lifetime:
-        sys.exit(f"Campaign {name!r}: set campaign_daily_budget_usd OR campaign_lifetime_budget_usd, not both.")
+        sys.exit(f"Campaign {name!r}: set campaign_daily_budget OR campaign_lifetime_budget, not both.")
     if daily:
-        params["daily_budget"] = int(float(daily) * 100)
+        params["daily_budget"] = int(float(daily) * multiplier)
     if lifetime:
-        params["lifetime_budget"] = int(float(lifetime) * 100)
+        params["lifetime_budget"] = int(float(lifetime) * multiplier)
 
     bid = _get(row, "campaign_bid_strategy")
     if bid:
         params["bid_strategy"] = bid
-    cap = _get(row, "campaign_spend_cap_usd")
+    cap = _money(row, "campaign_spend_cap")
     if cap:
-        params["spend_cap"] = int(float(cap) * 100)
+        params["spend_cap"] = int(float(cap) * multiplier)
     start = _get(row, "campaign_start_time")
     if start:
         params["start_time"] = start
@@ -323,19 +355,19 @@ def build_campaign_params(row, name):
     return params
 
 
-def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, existing_campaign=False):
+def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, existing_campaign=False, multiplier=100):
     cbo = _is_cbo(campaign_row) if campaign_row else False
-    daily_budget = _get(row, "daily_budget_usd")
-    lifetime_budget = _get(row, "lifetime_budget_usd")
+    daily_budget = _money(row, "daily_budget")
+    lifetime_budget = _money(row, "lifetime_budget")
     if cbo and (daily_budget or lifetime_budget):
         sys.exit(
-            f"Ad set {name!r}: parent campaign uses CBO (campaign_daily_budget_usd or campaign_lifetime_budget_usd set). "
-            "Leave daily_budget_usd and lifetime_budget_usd blank on rows under this campaign."
+            f"Ad set {name!r}: parent campaign uses CBO (campaign_daily_budget or campaign_lifetime_budget set). "
+            "Leave daily_budget and lifetime_budget blank on rows under this campaign."
         )
     if not cbo and daily_budget and lifetime_budget:
-        sys.exit(f"Ad set {name!r}: set daily_budget_usd OR lifetime_budget_usd, not both.")
+        sys.exit(f"Ad set {name!r}: set daily_budget OR lifetime_budget, not both.")
     if not existing_campaign and not cbo and not daily_budget and not lifetime_budget:
-        sys.exit(f"Ad set {name!r}: needs daily_budget_usd or lifetime_budget_usd (ABO), or a campaign-level budget on the campaign (CBO).")
+        sys.exit(f"Ad set {name!r}: needs daily_budget or lifetime_budget (ABO), or a campaign-level budget on the campaign (CBO).")
 
     bid_strategy = _get(row, "bid_strategy") or "LOWEST_COST_WITHOUT_CAP"
     params = {
@@ -349,25 +381,26 @@ def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, exist
     if not cbo:
         params[AdSet.Field.bid_strategy] = bid_strategy
         if daily_budget:
-            params[AdSet.Field.daily_budget] = int(float(daily_budget) * 100)
+            params[AdSet.Field.daily_budget] = int(float(daily_budget) * multiplier)
         if lifetime_budget:
-            params[AdSet.Field.lifetime_budget] = int(float(lifetime_budget) * 100)
+            params[AdSet.Field.lifetime_budget] = int(float(lifetime_budget) * multiplier)
 
     # bid_amount and bid_roas_floor live on the ad set regardless of CBO/ABO —
     # CBO campaigns still let each ad set carry its own cap / ROAS floor.
-    bid_amount = _get(row, "bid_amount_usd")
+    bid_amount = _money(row, "bid_amount")
     if bid_amount:
-        params[AdSet.Field.bid_amount] = int(float(bid_amount) * 100)
+        params[AdSet.Field.bid_amount] = int(float(bid_amount) * multiplier)
     roas_floor = _get(row, "bid_roas_floor")
     if roas_floor:
+        # ROAS floor is a percentage (200 = 2.0x ROAS), not currency.
         params["bid_constraints"] = {"roas_average_floor": int(float(roas_floor) * 100)}
 
-    daily_cap = _get(row, "daily_spend_cap_usd")
+    daily_cap = _money(row, "daily_spend_cap")
     if daily_cap:
-        params["daily_spend_cap"] = int(float(daily_cap) * 100)
-    lifetime_cap = _get(row, "lifetime_spend_cap_usd")
+        params["daily_spend_cap"] = int(float(daily_cap) * multiplier)
+    lifetime_cap = _money(row, "lifetime_spend_cap")
     if lifetime_cap:
-        params["lifetime_spend_cap"] = int(float(lifetime_cap) * 100)
+        params["lifetime_spend_cap"] = int(float(lifetime_cap) * multiplier)
     pacing = _get(row, "pacing_type")
     if pacing:
         params["pacing_type"] = [pacing]
@@ -659,6 +692,14 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
     results = []
     created = []
     protected_ids = set()
+    # Detect ad account currency so budget/bid amounts entered as
+    # "50" become $50 (USD, x100), 50000 won (KRW, x1), etc. Default
+    # 100 in dry-run because we don't have a live account to query.
+    multiplier = 100
+    if account and not dry_run:
+        currency = account.api_get(fields=["currency"]).get("currency")
+        multiplier = _currency_multiplier(currency)
+        print(f"Ad account currency: {currency} — money amounts in template treated as {currency} (x{multiplier} to atomic units)")
     # One-time campaign index for name-based auto-reuse. Empty in dry-run
     # since dry-run shouldn't hit Meta.
     campaign_index = _build_campaign_index(account) if (account and not dry_run) else {}
@@ -682,7 +723,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                 protected_ids.add(campaign_id)
                 print(f"Reusing existing campaign {campaign_id}: {c_name}")
             else:
-                c_params = build_campaign_params(cm, c_name)
+                c_params = build_campaign_params(cm, c_name, multiplier=multiplier)
                 if dry_run:
                     print("CAMPAIGN:", json.dumps(c_params, indent=2))
                     campaign_id = f"DRY_CAMPAIGN_{c_name}"
@@ -708,7 +749,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                     protected_ids.add(adset_id)
                     print(f"  Reusing existing ad set {adset_id}: {a_name}")
                 else:
-                    as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm, existing_campaign=bool(existing_campaign))
+                    as_params = build_adset_params(am, a_name, campaign_id, dry_run, campaign_row=cm, existing_campaign=bool(existing_campaign), multiplier=multiplier)
                     if dry_run:
                         print("AD SET:", json.dumps(as_params, indent=2, default=str))
                         adset_id = f"DRY_ADSET_{a_name}"

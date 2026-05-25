@@ -66,10 +66,10 @@ Same flow without the browser:
 | `campaign_objective` | yes | Dropdown: `OUTCOME_AWARENESS`, `OUTCOME_TRAFFIC`, `OUTCOME_ENGAGEMENT`, `OUTCOME_LEADS`, `OUTCOME_APP_PROMOTION`, `OUTCOME_SALES` |
 | `buying_type` | yes | Dropdown: `AUCTION` (default), `RESERVED` |
 | `special_ad_categories` | yes | Dropdown: `NONE`, `HOUSING`, `CREDIT`, `EMPLOYMENT`, `ISSUES_ELECTIONS_POLITICS`, `ONLINE_GAMBLING_AND_GAMING`, `FINANCIAL_PRODUCTS_SERVICES` |
-| `campaign_daily_budget_usd` | CBO | Set to use Campaign Budget Optimization. Mutually exclusive with `campaign_lifetime_budget_usd`. When either is set, ad-set `daily_budget_usd` / `lifetime_budget_usd` MUST be blank. |
-| `campaign_lifetime_budget_usd` | CBO | CBO lifetime budget. Mutually exclusive with `campaign_daily_budget_usd`. |
+| `campaign_daily_budget` | CBO | Set to use Campaign Budget Optimization. Mutually exclusive with `campaign_lifetime_budget`. When either is set, ad-set `daily_budget` / `lifetime_budget` MUST be blank. Amount is **in the ad account's currency** (50 = $50 on a USD account, 50000 = 50,000 won on a KRW account). |
+| `campaign_lifetime_budget` | CBO | CBO lifetime budget. Same currency rule. Mutually exclusive with `campaign_daily_budget`. |
 | `campaign_bid_strategy` | CBO | Dropdown: same values as `bid_strategy`. Only used when a campaign budget is set. |
-| `campaign_spend_cap_usd` | optional | Total spend cap for the campaign (dollars). |
+| `campaign_spend_cap` | optional | Total spend cap for the campaign, in the ad account's currency. |
 | `campaign_start_time` | optional | ISO 8601 (e.g. `2026-06-01T09:00:00-0700`). |
 | `campaign_stop_time` | optional | ISO 8601. |
 
@@ -79,19 +79,19 @@ Same flow without the browser:
 | --- | --- | --- |
 | `existing_adset_id` | optional | If set, skip ad set creation and attach new ads under this existing ad set. All other ad-set columns on the row are ignored. |
 | `adset_name` | yes | Group key — rows sharing campaign + adset name become one ad set |
-| `daily_budget_usd` | ABO | Dollars. Required for ABO. Leave blank if the parent campaign uses CBO. Mutually exclusive with `lifetime_budget_usd`. |
-| `lifetime_budget_usd` | ABO | Dollars. Lifetime alternative to `daily_budget_usd`. Requires `end_time`. |
+| `daily_budget` | ABO | Amount in the ad account's currency (50 = $50 USD, 50000 = 50,000 KRW). Required for ABO. Leave blank if the parent campaign uses CBO. Mutually exclusive with `lifetime_budget`. |
+| `lifetime_budget` | ABO | Lifetime alternative to `daily_budget`. Same currency rule. Requires `end_time`. |
 | `bid_strategy` | ABO | Dropdown: `LOWEST_COST_WITHOUT_CAP` (default), `LOWEST_COST_WITH_BID_CAP`, `COST_CAP`, `LOWEST_COST_WITH_MIN_ROAS`. Ignored under CBO. |
-| `bid_amount_usd` | conditional | Required if `bid_strategy` is `LOWEST_COST_WITH_BID_CAP` or `COST_CAP`. Dollars. |
-| `bid_roas_floor` | conditional | Required if `bid_strategy` is `LOWEST_COST_WITH_MIN_ROAS`. Decimal multiple (`2.0` = 2.0x ROAS floor). |
-| `daily_spend_cap_usd` | optional | Per-day spend cap on the ad set. |
-| `lifetime_spend_cap_usd` | optional | Lifetime spend cap on the ad set. |
+| `bid_amount` | conditional | Required if `bid_strategy` is `LOWEST_COST_WITH_BID_CAP` or `COST_CAP`. Amount in the ad account's currency. |
+| `bid_roas_floor` | conditional | Required if `bid_strategy` is `LOWEST_COST_WITH_MIN_ROAS`. Decimal multiple (`2.0` = 2.0x ROAS floor) — NOT currency. |
+| `daily_spend_cap` | optional | Per-day spend cap on the ad set, in the ad account's currency. |
+| `lifetime_spend_cap` | optional | Lifetime spend cap on the ad set, in the ad account's currency. |
 | `pacing_type` | optional | Dropdown: `standard` (default), `no_pacing`. |
 | `billing_event` | yes | Dropdown: `IMPRESSIONS`, `LINK_CLICKS`, `POST_ENGAGEMENT`, `VIDEO_VIEWS`, `THRUPLAY` |
 | `optimization_goal` | yes | Dropdown: `REACH`, `IMPRESSIONS`, `LINK_CLICKS`, `LANDING_PAGE_VIEWS`, `POST_ENGAGEMENT`, `PAGE_LIKES`, `VIDEO_VIEWS`, `THRUPLAY`, `OFFSITE_CONVERSIONS`, `VALUE`, `LEAD_GENERATION`, `QUALITY_LEAD`, `CONVERSATIONS`, `APP_INSTALLS`, `AD_RECALL_LIFT` |
 | `destination_type` | yes for most | Dropdown: `WEBSITE` (most common), `APP`, `MESSENGER`, `INSTAGRAM_DIRECT`, `WHATSAPP`, `FACEBOOK`, `ON_AD`, `ON_POST`, `ON_PAGE`, `ON_EVENT`, `ON_VIDEO`, `SHOP_AUTOMATIC` |
 | `start_time` | optional | ISO 8601 (e.g. `2026-06-01T09:00:00-0700`). Blank = start immediately. |
-| `end_time` | optional | ISO 8601. Required with `lifetime_budget_usd`. Blank = run indefinitely. |
+| `end_time` | optional | ISO 8601. Required with `lifetime_budget`. Blank = run indefinitely. |
 | `pixel_id` | conditional | Required for `OUTCOME_SALES` + `OFFSITE_CONVERSIONS`/`VALUE`. Your Meta Pixel ID. |
 | `custom_event_type` | conditional | Dropdown: `PURCHASE`, `LEAD`, `COMPLETE_REGISTRATION`, `ADD_TO_CART`, `INITIATE_CHECKOUT`, `ADD_PAYMENT_INFO`, `VIEW_CONTENT`, `SEARCH`, `SUBSCRIBE`, `CONTACT`, `DONATE`, `OTHER`. Pair with `pixel_id`. |
 | `application_id` | conditional | Required for `OUTCOME_APP_PROMOTION`. The Meta App ID. |

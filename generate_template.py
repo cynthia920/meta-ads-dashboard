@@ -29,7 +29,7 @@ SAMPLE_ROW = {
     "buying_type": "AUCTION",
     "special_ad_categories": "NONE",
     "adset_name": "My First Ad Set",
-    "daily_budget_usd": 50,
+    "daily_budget": 50,
     "bid_strategy": "LOWEST_COST_WITHOUT_CAP",
     "billing_event": "IMPRESSIONS",
     "optimization_goal": "LANDING_PAGE_VIEWS",
