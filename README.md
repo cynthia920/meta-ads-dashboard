@@ -168,6 +168,15 @@ Other / video / translation:
 
 **Note on Advantage+ creative**: Meta's valid feature set varies by ad type, account, and what's enabled in Business Manager. Catalog-only features (`PRODUCT_TAGS`, `PRODUCT_BROWSING`, `STANDARD_ENHANCEMENTS_CATALOG`, etc.) only work on ads with a connected product catalog. If a column errors, paste the `must be one of {...}` message and we'll trim or rename.
 
+### Label + ID in the same cell
+
+For every ID column (`page_id`, `instagram_user_id`, `threads_user_id`, `existing_campaign_id`, `existing_adset_id`, `existing_post_id`, `partnership_ad_code`, `second_identity_page_id`, `second_identity_ig_id`, `pixel_id`, `application_id`, `saved_audience_id`, `video_id`, `included_custom_audience_ids`, `excluded_custom_audience_ids`), the script auto-extracts an ID in trailing parentheses. So both of these work and produce the same result:
+
+- `445963815277238`
+- `Sungboon Editor US (445963815277238)`
+
+Useful for keeping the human-readable Page / IG / audience name next to the ID so you can verify at a glance which row uses which entity. For comma-separated columns the same rule applies per item: `"Audience X (2222),Audience Y (3333)"` is split, each item's parenthesized ID is extracted, and the result becomes `2222,3333`.
+
 ### Finding your Saved Audience ID
 
 In Ads Manager → **Audiences**, click a saved audience. The URL contains

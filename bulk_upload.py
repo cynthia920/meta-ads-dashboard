@@ -185,6 +185,30 @@ def _cell_to_str(v):
     return str(v)
 
 
+def _extract_id(value):
+    """If the cell holds a label and an ID in parentheses — e.g.
+    'Page ABC (123456789)' — return just the ID. Otherwise return the
+    trimmed value unchanged."""
+    if not value:
+        return value
+    s = str(value).strip()
+    m = re.search(r"\(([^)]+)\)\s*$", s)
+    return m.group(1).strip() if m else s
+
+
+def _normalize_ids(row):
+    """Apply _extract_id to every ID-bearing column on the row, including
+    comma-separated lists. Mutates row in place."""
+    from template_options import ID_COLUMNS, COMMA_SEPARATED_ID_COLUMNS
+
+    for col in ID_COLUMNS:
+        if col in row:
+            row[col] = _extract_id(row[col])
+    for col in COMMA_SEPARATED_ID_COLUMNS:
+        if row.get(col):
+            row[col] = ",".join(_extract_id(p) for p in row[col].split(",") if p.strip())
+
+
 def load_rows(path):
     if path.lower().endswith(".xlsx"):
         from openpyxl import load_workbook
@@ -203,6 +227,8 @@ def load_rows(path):
             rows = list(csv.DictReader(f))
     if not rows:
         sys.exit(f"No rows in {path}")
+    for row in rows:
+        _normalize_ids(row)
     return rows
 
 

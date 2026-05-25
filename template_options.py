@@ -162,6 +162,33 @@ CTAS = [
     "NO_BUTTON",
 ]
 
+# Columns whose cell value may carry a human-readable label before the
+# actual ID, e.g. "Page ABC (123456789)" — the script extracts the value
+# inside the trailing parentheses before using it.
+ID_COLUMNS = {
+    "existing_campaign_id",
+    "existing_adset_id",
+    "existing_post_id",
+    "partnership_ad_code",
+    "page_id",
+    "instagram_user_id",
+    "threads_user_id",
+    "second_identity_page_id",
+    "second_identity_ig_id",
+    "pixel_id",
+    "application_id",
+    "saved_audience_id",
+    "video_id",
+}
+
+# Same idea, but each cell holds a comma-separated list of IDs that the
+# script splits, extracts, and rejoins.
+COMMA_SEPARATED_ID_COLUMNS = {
+    "included_custom_audience_ids",
+    "excluded_custom_audience_ids",
+}
+
+
 # (column_name, dropdown_options or None)
 COLUMNS = [
     # campaign
