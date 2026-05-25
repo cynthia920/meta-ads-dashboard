@@ -440,18 +440,21 @@ def build_creative_spec(row, account=None, dry_run=False):
 
     from template_options import ADVANTAGE_FEATURE_COLUMNS
 
+    def _enroll(val):
+        v = (val or "").strip().upper()
+        return "OPT_IN" if v == "ON" else "OPT_OUT" if v == "OFF" else None
+
     features_spec = {}
-    advantage = _get(row, "advantage_plus_creative").upper()
-    if advantage in ("ENABLED", "DISABLED"):
-        master_enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
+    master = _enroll(row.get("advantage_plus_creative"))
+    if master:
         # Broad master-switch baseline — applies to both image and video
         # ads regardless of catalog use. Per-feature columns override.
         for f in ("IG_VIDEO_NATIVE_SUBTITLE", "IMAGE_ANIMATION", "TEXT_OVERLAY_TRANSLATION"):
-            features_spec[f] = {"enroll_status": master_enroll}
+            features_spec[f] = {"enroll_status": master}
 
     for col, api_key in ADVANTAGE_FEATURE_COLUMNS:
-        per_feature = _get(row, col).upper()
-        if per_feature in ("OPT_IN", "OPT_OUT"):
+        per_feature = _enroll(row.get(col))
+        if per_feature:
             features_spec[api_key] = {"enroll_status": per_feature}
 
     if features_spec:

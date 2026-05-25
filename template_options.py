@@ -101,14 +101,14 @@ GENDERS = ["", "1", "2", "1,2"]
 # CALL and WHATSAPP also require phone_number to be filled.
 BROWSER_ADDONS = ["", "NONE", "CALL", "MESSENGER", "WHATSAPP"]
 
-# Master switch for Meta's Advantage+ creative enhancements (Standard
-# Enhancements bundle). ENABLED = opt-in, DISABLED = opt-out, blank =
-# leave at Meta's account default.
-ADVANTAGE_PLUS_CREATIVE = ["", "ENABLED", "DISABLED"]
+# Master switch for Meta's Advantage+ creative enhancements. ON / OFF /
+# blank (leave at Meta's account default). Script translates to
+# enroll_status OPT_IN / OPT_OUT before sending to Meta.
+ADVANTAGE_PLUS_CREATIVE = ["", "ON", "OFF"]
 
 # Per-feature enrollment for Advantage+ creative. Blank = inherit master
-# switch (or Meta's default), OPT_IN / OPT_OUT override per feature.
-ENROLL_STATUS = ["", "OPT_IN", "OPT_OUT"]
+# switch (or Meta's default), ON = OPT_IN, OFF = OPT_OUT.
+ENROLL_STATUS = ["", "ON", "OFF"]
 
 # Maps each adv_* template column to the uppercase API feature key Meta
 # accepts in degrees_of_freedom_spec.creative_features_spec. Some keys
