@@ -3,6 +3,12 @@
 Open the resulting file in Excel, Google Sheets, or Numbers — clicking an
 enum cell shows a dropdown of valid Meta values.
 
+Implementation: stores all dropdown option lists on a hidden "_options"
+sheet and references them by range. This works across Excel, Google
+Sheets, and Numbers — unlike the inline "a,b,c" formula which Sheets and
+Numbers sometimes silently drop, especially when the list starts with an
+empty option.
+
 Usage:
   python generate_template.py            # writes template.xlsx
   python generate_template.py out.xlsx
@@ -11,7 +17,7 @@ Usage:
 import sys
 
 from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter, quote_sheetname, absolute_coordinate
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from template_options import COLUMNS
@@ -102,11 +108,30 @@ def build(path):
     ws.append(headers)
     ws.append([SAMPLE_ROW.get(name, "") for name in headers])
 
+    opts_ws = wb.create_sheet("_options")
+    opts_ws.sheet_state = "hidden"
+
+    dropdown_count = 0
     for col_idx, (name, options) in enumerate(COLUMNS, start=1):
         if not options:
             continue
-        formula = '"' + ",".join(options) + '"'
-        dv = DataValidation(type="list", formula1=formula, allow_blank=True)
+        # Drop the empty-string option from the dropdown list; the cell's
+        # allow_blank=True already permits leaving the cell empty.
+        values = [v for v in options if v != ""]
+        if not values:
+            continue
+        # Lay each option list down a unique column on the _options sheet.
+        opt_col = dropdown_count + 1
+        for row_idx, val in enumerate(values, start=1):
+            opts_ws.cell(row=row_idx, column=opt_col, value=val)
+        opt_letter = get_column_letter(opt_col)
+        range_ref = (
+            f"={quote_sheetname('_options')}!"
+            f"{absolute_coordinate(opt_letter + '1')}:"
+            f"{absolute_coordinate(opt_letter + str(len(values)))}"
+        )
+
+        dv = DataValidation(type="list", formula1=range_ref, allow_blank=True)
         dv.error = f"Pick a valid {name}"
         dv.errorTitle = "Invalid value"
         dv.prompt = "Choose from the list"
@@ -114,13 +139,14 @@ def build(path):
         col_letter = get_column_letter(col_idx)
         dv.add(f"{col_letter}2:{col_letter}{MAX_ROWS}")
         ws.add_data_validation(dv)
+        dropdown_count += 1
 
     for col_idx, name in enumerate(headers, start=1):
         ws.column_dimensions[get_column_letter(col_idx)].width = max(14, len(name) + 2)
 
     ws.freeze_panes = "A2"
     wb.save(path)
-    print(f"Wrote {path} with {len([o for _, o in COLUMNS if o])} dropdown columns.")
+    print(f"Wrote {path} with {dropdown_count} dropdown columns (options on hidden _options sheet).")
 
 
 if __name__ == "__main__":
