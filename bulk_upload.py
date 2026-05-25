@@ -428,6 +428,26 @@ def build_creative_spec(row, account=None, dry_run=False):
             "name": f"Creative - {row['ad_name']}",
             "object_story_id": object_story_id,
         }
+
+        # CTA + link destination override. Meta accepts these on top of an
+        # object_story_id creative for most post types — the post's existing
+        # CTA/link is replaced for the ad rendering. Skip if NO_BUTTON or
+        # either is blank.
+        cta = _get(row, "cta")
+        link_url = _get(row, "link_url")
+        if cta and cta != "NO_BUTTON" and link_url:
+            spec["call_to_action"] = {"type": cta, "value": {"link": link_url}}
+
+        # Partnership Ads identity overrides — only relevant when partnership
+        # _ad_code is set (your Page is the sponsor of the partner's post).
+        if partnership_code:
+            sponsor_page = _get(row, "branded_content_sponsor_page_id") or row.get("page_id")
+            if sponsor_page:
+                spec["branded_content_sharing_partner_id"] = sponsor_page
+            sponsor_ig = _get(row, "branded_content_sponsor_ig_id") or _get(row, "instagram_user_id")
+            if sponsor_ig:
+                spec["instagram_user_id"] = sponsor_ig
+
         url_tags = _get(row, "url_tags")
         if url_tags:
             spec["url_tags"] = url_tags

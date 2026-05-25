@@ -209,6 +209,8 @@ COLUMNS = [
     ("ad_name", None),
     ("existing_post_id", None),
     ("partnership_ad_code", None),
+    ("branded_content_sponsor_page_id", None),
+    ("branded_content_sponsor_ig_id", None),
     ("image_url", None),
     ("video_id", None),
     ("video_url", None),

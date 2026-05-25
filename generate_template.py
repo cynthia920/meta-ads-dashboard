@@ -41,6 +41,8 @@ SAMPLE_ROW = {
     "ad_name": "My First Ad",
     "existing_post_id": "",
     "partnership_ad_code": "",
+    "branded_content_sponsor_page_id": "",
+    "branded_content_sponsor_ig_id": "",
     "image_url": "https://example.com/image.jpg",
     "primary_text": "Body copy goes here.",
     "headline": "Your headline",
