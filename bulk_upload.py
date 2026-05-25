@@ -438,25 +438,24 @@ def build_creative_spec(row, account=None, dry_run=False):
     if url_tags:
         spec["url_tags"] = url_tags
 
+    from template_options import ADVANTAGE_FEATURE_COLUMNS
+
+    features_spec = {}
     advantage = _get(row, "advantage_plus_creative").upper()
     if advantage in ("ENABLED", "DISABLED"):
-        enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
-        # Meta deprecated standard_enhancements and renamed every feature
-        # to UPPERCASE-style keys; the valid set varies by ad / account.
-        # These three are broadly applicable to both image and video ads;
-        # catalog-only features (PRODUCT_BROWSING, STANDARD_ENHANCEMENTS_
-        # CATALOG, etc.) are intentionally omitted because they error on
-        # non-catalog ads.
-        features = [
-            "IG_VIDEO_NATIVE_SUBTITLE",
-            "IMAGE_ANIMATION",
-            "TEXT_OVERLAY_TRANSLATION",
-        ]
-        spec["degrees_of_freedom_spec"] = {
-            "creative_features_spec": {
-                f: {"enroll_status": enroll} for f in features
-            }
-        }
+        master_enroll = "OPT_IN" if advantage == "ENABLED" else "OPT_OUT"
+        # Broad master-switch baseline — applies to both image and video
+        # ads regardless of catalog use. Per-feature columns override.
+        for f in ("IG_VIDEO_NATIVE_SUBTITLE", "IMAGE_ANIMATION", "TEXT_OVERLAY_TRANSLATION"):
+            features_spec[f] = {"enroll_status": master_enroll}
+
+    for col, api_key in ADVANTAGE_FEATURE_COLUMNS:
+        per_feature = _get(row, col).upper()
+        if per_feature in ("OPT_IN", "OPT_OUT"):
+            features_spec[api_key] = {"enroll_status": per_feature}
+
+    if features_spec:
+        spec["degrees_of_freedom_spec"] = {"creative_features_spec": features_spec}
     return spec
 
 

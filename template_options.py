@@ -106,6 +106,22 @@ BROWSER_ADDONS = ["", "NONE", "CALL", "MESSENGER", "WHATSAPP"]
 # leave at Meta's account default.
 ADVANTAGE_PLUS_CREATIVE = ["", "ENABLED", "DISABLED"]
 
+# Per-feature enrollment for Advantage+ creative. Blank = inherit master
+# switch (or Meta's default), OPT_IN / OPT_OUT override per feature.
+ENROLL_STATUS = ["", "OPT_IN", "OPT_OUT"]
+
+# Maps each adv_* template column to the uppercase API feature key Meta
+# accepts in degrees_of_freedom_spec.creative_features_spec.
+ADVANTAGE_FEATURE_COLUMNS = [
+    ("adv_image_animation", "IMAGE_ANIMATION"),
+    ("adv_image_touchups", "IMAGE_TOUCHUPS"),
+    ("adv_text_generation", "TEXT_GENERATION"),
+    ("adv_text_overlay_translation", "TEXT_OVERLAY_TRANSLATION"),
+    ("adv_ig_video_subtitle", "IG_VIDEO_NATIVE_SUBTITLE"),
+    ("adv_music", "MUSIC"),
+    ("adv_profile_card", "PROFILE_CARD"),
+]
+
 CTAS = [
     "SHOP_NOW",
     "LEARN_MORE",
@@ -193,4 +209,4 @@ COLUMNS = [
     ("phone_number", None),
     ("conversion_domain", None),
     ("advantage_plus_creative", ADVANTAGE_PLUS_CREATIVE),
-]
+] + [(col, ENROLL_STATUS) for col, _ in ADVANTAGE_FEATURE_COLUMNS]

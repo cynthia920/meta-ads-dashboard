@@ -131,7 +131,16 @@ Same flow without the browser:
 | `browser_addon` | optional | Dropdown: blank or `NONE` (use `cta` as-is — this is what you want for a normal Website ad). **Warning**: setting `CALL` / `MESSENGER` / `WHATSAPP` does NOT add a button overlay on a Website ad — it **replaces the entire destination**, turning the ad into a click-to-call / click-to-Messenger / click-to-WhatsApp ad. The website URL and the chosen `cta` are both overridden. The "Browser add-on" button overlay you may have seen in Ads Manager is a UI-only feature and isn't exposed via the Marketing API; if you want that, leave this column blank and toggle it manually in Ads Manager after upload. `CALL` and `WHATSAPP` also require `phone_number`. |
 | `phone_number` | conditional | Required when `browser_addon` is `CALL` or `WHATSAPP`. For WhatsApp use international format without `+` (e.g. `15551234567`). |
 | `conversion_domain` | optional | The domain conversions are attributed to (e.g. `example.com`). Recommended for `OUTCOME_SALES`. |
-| `advantage_plus_creative` | optional | Dropdown: blank (Meta's account default), `ENABLED` (opt-in to Advantage+ creative — the "Advantage+ creative enhancements" section in Ads Manager: text improvements, image touch-ups, music, video touch-ups, sticker CTA, etc.), `DISABLED` (opt-out). For per-feature granular control, edit individual toggles in Ads Manager after upload. |
+| `advantage_plus_creative` | optional | **Master switch** for Advantage+ creative. Dropdown: blank (Meta's account default), `ENABLED` (opt-in), `DISABLED` (opt-out). Sets a baseline for `IG_VIDEO_NATIVE_SUBTITLE`, `IMAGE_ANIMATION`, and `TEXT_OVERLAY_TRANSLATION`. The per-feature columns below override this baseline for specific features. |
+| `adv_image_animation` | optional | Per-feature toggle: blank / `OPT_IN` / `OPT_OUT`. → API `IMAGE_ANIMATION`. UI: "Image animation" / "Reveal details over time". |
+| `adv_image_touchups` | optional | → API `IMAGE_TOUCHUPS`. UI: "Visual touch-ups" / brightness & contrast. |
+| `adv_text_generation` | optional | → API `TEXT_GENERATION`. UI: "Advantage+ creative text generation". |
+| `adv_text_overlay_translation` | optional | → API `TEXT_OVERLAY_TRANSLATION`. Auto-translates text overlays. |
+| `adv_ig_video_subtitle` | optional | → API `IG_VIDEO_NATIVE_SUBTITLE`. Auto-subtitles on IG video. |
+| `adv_music` | optional | → API `MUSIC`. UI: "Add music". |
+| `adv_profile_card` | optional | → API `PROFILE_CARD`. Profile card overlay. |
+
+**Note on Advantage+ creative**: Meta's set of valid feature keys varies by ad type, account, and what's enabled in Business Manager — and the names change over time. If a column errors with `must be one of {...}`, that error message lists the keys your account currently accepts; tell me the list and I'll adjust. For per-feature control beyond these columns (e.g. catalog-only features like `PRODUCT_BROWSING`), edit in Ads Manager after upload.
 
 ### Finding your Saved Audience ID
 

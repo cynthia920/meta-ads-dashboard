@@ -74,6 +74,13 @@ SAMPLE_ROW = {
     "phone_number": "",
     "conversion_domain": "example.com",
     "advantage_plus_creative": "",
+    "adv_image_animation": "",
+    "adv_image_touchups": "",
+    "adv_text_generation": "",
+    "adv_text_overlay_translation": "",
+    "adv_ig_video_subtitle": "",
+    "adv_music": "",
+    "adv_profile_card": "",
 }
 
 MAX_ROWS = 500
