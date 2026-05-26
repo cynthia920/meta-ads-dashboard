@@ -461,15 +461,13 @@ def special_ad_categories(value):
 def build_targeting(row, dry_run=False):
     saved_id = (row.get("saved_audience_id") or "").strip()
     if saved_id:
-        if dry_run:
-            return {"saved_audience_id": saved_id}
-        from facebook_business.adobjects.savedaudience import SavedAudience
-
-        sa = SavedAudience(saved_id).api_get(fields=["targeting"])
-        targeting = sa.get("targeting")
-        if not targeting:
-            sys.exit(f"Saved audience {saved_id} has no targeting spec — open it in Ads Manager and check it has a location.")
-        return targeting
+        # Pass saved_audience_id directly so Meta links the ad set to the
+        # saved audience (visible by name in Ads Manager). Previously we
+        # fetched the audience's full targeting spec and inlined it,
+        # which created an unlinked copy of the targeting — the saved
+        # audience name didn't show in Ads Manager and edits to the
+        # saved audience didn't propagate.
+        return {"saved_audience_id": saved_id}
     targeting = {
         "geo_locations": {"countries": [c.strip() for c in row["countries"].split(",") if c.strip()]},
         "age_min": int(row["age_min"]),
