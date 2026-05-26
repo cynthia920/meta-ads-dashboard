@@ -775,6 +775,7 @@ def _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, 
         "call_to_action_types": [cta_obj["type"]],
     }
     if video_id:
+        _wait_for_video_ready(video_id, dry_run)
         thumb_url = image_url or _video_thumbnail(video_id, dry_run)
         thumb_hash = _upload_image(account, thumb_url, dry_run)
         asset_feed_spec["videos"] = [{"video_id": video_id, "thumbnail_hash": thumb_hash}]
