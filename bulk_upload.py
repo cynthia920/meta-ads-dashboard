@@ -64,6 +64,15 @@ def _money(row, key):
     return _get(row, key + "_usd")
 
 
+def _parse_amount(value):
+    """Parse a money string into a float, tolerating thousand-separator
+    commas (20,000) and surrounding currency symbols / whitespace."""
+    if value is None or value == "":
+        return 0.0
+    s = str(value).strip().replace(",", "").replace("$", "").replace(" ", "")
+    return float(s)
+
+
 def convert_drive_url(url):
     """Rewrite Google Drive sharing links to the lh3.googleusercontent.com form
     Meta can actually fetch. Pass-through for anything that isn't a Drive URL.
@@ -446,16 +455,16 @@ def build_campaign_params(row, name, multiplier=100):
     if daily and lifetime:
         sys.exit(f"Campaign {name!r}: set campaign_daily_budget OR campaign_lifetime_budget, not both.")
     if daily:
-        params["daily_budget"] = int(float(daily) * multiplier)
+        params["daily_budget"] = int(_parse_amount(daily) * multiplier)
     if lifetime:
-        params["lifetime_budget"] = int(float(lifetime) * multiplier)
+        params["lifetime_budget"] = int(_parse_amount(lifetime) * multiplier)
 
     bid = _get(row, "campaign_bid_strategy")
     if bid:
         params["bid_strategy"] = bid
     cap = _money(row, "campaign_spend_cap")
     if cap:
-        params["spend_cap"] = int(float(cap) * multiplier)
+        params["spend_cap"] = int(_parse_amount(cap) * multiplier)
     start = _get(row, "campaign_start_time")
     if start:
         params["start_time"] = start
@@ -491,26 +500,26 @@ def build_adset_params(row, name, campaign_id, dry_run, campaign_row=None, exist
     if not cbo:
         params[AdSet.Field.bid_strategy] = bid_strategy
         if daily_budget:
-            params[AdSet.Field.daily_budget] = int(float(daily_budget) * multiplier)
+            params[AdSet.Field.daily_budget] = int(_parse_amount(daily_budget) * multiplier)
         if lifetime_budget:
-            params[AdSet.Field.lifetime_budget] = int(float(lifetime_budget) * multiplier)
+            params[AdSet.Field.lifetime_budget] = int(_parse_amount(lifetime_budget) * multiplier)
 
     # bid_amount and bid_roas_floor live on the ad set regardless of CBO/ABO —
     # CBO campaigns still let each ad set carry its own cap / ROAS floor.
     bid_amount = _money(row, "bid_amount")
     if bid_amount:
-        params[AdSet.Field.bid_amount] = int(float(bid_amount) * multiplier)
+        params[AdSet.Field.bid_amount] = int(_parse_amount(bid_amount) * multiplier)
     roas_floor = _get(row, "bid_roas_floor")
     if roas_floor:
         # ROAS floor is a percentage (200 = 2.0x ROAS), not currency.
-        params["bid_constraints"] = {"roas_average_floor": int(float(roas_floor) * 100)}
+        params["bid_constraints"] = {"roas_average_floor": int(_parse_amount(roas_floor) * 100)}
 
     daily_cap = _money(row, "daily_spend_cap")
     if daily_cap:
-        params["daily_spend_cap"] = int(float(daily_cap) * multiplier)
+        params["daily_spend_cap"] = int(_parse_amount(daily_cap) * multiplier)
     lifetime_cap = _money(row, "lifetime_spend_cap")
     if lifetime_cap:
-        params["lifetime_spend_cap"] = int(float(lifetime_cap) * multiplier)
+        params["lifetime_spend_cap"] = int(_parse_amount(lifetime_cap) * multiplier)
     pacing = _get(row, "pacing_type")
     if pacing:
         params["pacing_type"] = [pacing]
