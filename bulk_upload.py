@@ -125,14 +125,55 @@ def _upload_image(account, url, dry_run):
     return image[AdImage.Field.hash]
 
 
+def _drive_video_download_url(url):
+    """Drive's lh3.googleusercontent.com/d/<ID> serves image thumbnails,
+    not video files. For videos we need the explicit download endpoint."""
+    m = re.search(r"drive\.google\.com/file/d/([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    m = re.search(r"drive\.google\.com/(?:open|uc)\?(?:.*&)?id=([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    m = re.search(r"lh3\.googleusercontent\.com/d/([A-Za-z0-9_-]+)", url)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    return url
+
+
 def _upload_video(account, url, dry_run):
-    """Upload a video to /act_{id}/advideos via file_url (Meta fetches from
-    the URL itself) and return the video_id. Required when the user pastes
-    a video URL instead of pre-uploading and pasting the video_id."""
+    """Upload a video to /act_{id}/advideos and return the video_id.
+    First tries the file_url path (Meta fetches the URL itself, faster);
+    on failure (e.g. Meta can't reach the URL — common with Google Drive)
+    falls back to downloading the bytes locally and uploading via the SDK."""
     if dry_run:
         return f"DRY_VIDEO_{abs(hash(url)) % 10**10}"
-    result = account.create_ad_video(params={"file_url": url})
-    return result["id"]
+
+    # Drive URLs need the explicit download endpoint, not the thumbnail one.
+    direct_url = _drive_video_download_url(url)
+
+    try:
+        result = account.create_ad_video(params={"file_url": direct_url})
+        return result["id"]
+    except Exception as exc:
+        print(f"  Meta couldn't fetch video URL directly ({exc}). Downloading locally and re-uploading...")
+
+    import tempfile
+    from facebook_business.adobjects.advideo import AdVideo
+
+    req = urllib.request.Request(direct_url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=600) as resp:
+        data = resp.read()
+    # SDK's video upload expects a filepath; write to a temp file.
+    tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+    try:
+        tmp.write(data)
+        tmp.close()
+        video = AdVideo(parent_id=account.get_id_assured())
+        video[AdVideo.Field.filepath] = tmp.name
+        video.remote_create()
+        return video[AdVideo.Field.id]
+    finally:
+        os.unlink(tmp.name)
 
 
 def _video_thumbnail(video_id, dry_run):
