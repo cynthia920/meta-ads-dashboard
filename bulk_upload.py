@@ -94,16 +94,23 @@ def convert_drive_url(url):
     return url
 
 
+# Separator users put between text variants in a single cell (e.g.
+# primary_text "Buy now! || Last chance!"). Double-pipe chosen over a
+# single pipe because '|' appears in ad copy (brand taglines, lists);
+# '||' is rare.
+VARIANT_SEPARATOR = "||"
+
+
 def _split_variants(value):
-    """Pipe-separated text becomes a list of variants. Single value stays single."""
+    """Separator-split text becomes a list of variants. Single value stays single."""
     if not value:
         return []
-    return [v.strip() for v in value.split("|") if v.strip()]
+    return [v.strip() for v in value.split(VARIANT_SEPARATOR) if v.strip()]
 
 
 def _is_multivariant(row):
     for k in ("primary_text", "headline", "description"):
-        if "|" in (row.get(k) or ""):
+        if VARIANT_SEPARATOR in (row.get(k) or ""):
             return True
     return False
 
@@ -768,7 +775,7 @@ def build_creative_spec(row, account=None, dry_run=False):
 
 def _build_asset_feed_creative(row, image_url, video_id, cta_obj, display_link, account, dry_run):
     """Multi-variant creative using asset_feed_spec. Triggered when any of
-    primary_text / headline / description contains '|'."""
+    primary_text / headline / description contains '||'."""
     bodies = _split_variants(row.get("primary_text")) or ([row["primary_text"]] if row.get("primary_text") else [])
     titles = _split_variants(row.get("headline")) or ([row["headline"]] if row.get("headline") else [])
     descriptions = _split_variants(row.get("description")) or ([row["description"]] if row.get("description") else [])
@@ -920,7 +927,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                 if any(dyn_flags) and not all(dyn_flags):
                     sys.exit(
                         f"Ad set {a_name!r}: contains both ads with text variants "
-                        "(using '|' in primary_text/headline/description) and ads "
+                        "(using '||' in primary_text/headline/description) and ads "
                         "without. A dynamic creative ad set can only hold dynamic "
                         "ads — split them into two ad sets or remove the variants."
                     )
@@ -930,7 +937,7 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                         f"Ad set {a_name!r}: dynamic creative ad sets (any ad row "
                         f"with text variants) can only hold ONE ad. You have "
                         f"{len(ads)} ads under this adset_name. Give each ad its "
-                        "own adset_name, or remove the '|' variants if you want "
+                        "own adset_name, or remove the '||' variants if you want "
                         "them in the same ad set."
                     )
                 # Auto-lookup ad set by name within this campaign. Only
