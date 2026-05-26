@@ -114,15 +114,24 @@ def _upload_image(account, url, dry_run):
     URL via `picture`, but asset_feed_spec only takes hashes."""
     if dry_run:
         return f"DRY_HASH_{abs(hash(url)) % 10**10}"
+    import tempfile
     from facebook_business.adobjects.adimage import AdImage
 
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         data = resp.read()
-    image = AdImage(parent_id=account.get_id_assured())
-    image[AdImage.Field.filename] = "image.jpg"
-    image.remote_create(params={"bytes": data})
-    return image[AdImage.Field.hash]
+    # SDK's AdImage.remote_create reads the filename field as an on-disk
+    # path, not raw bytes. Write to a temp file and point at it.
+    tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+    try:
+        tmp.write(data)
+        tmp.close()
+        image = AdImage(parent_id=account.get_id_assured())
+        image[AdImage.Field.filename] = tmp.name
+        image.remote_create()
+        return image[AdImage.Field.hash]
+    finally:
+        os.unlink(tmp.name)
 
 
 def _drive_video_download_url(url):
