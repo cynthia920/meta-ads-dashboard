@@ -925,6 +925,14 @@ def upload(account, tree, campaign_meta, adset_meta, dry_run):
                         "ads — split them into two ad sets or remove the variants."
                     )
                 is_dynamic = bool(dyn_flags) and all(dyn_flags)
+                if is_dynamic and len(ads) > 1:
+                    sys.exit(
+                        f"Ad set {a_name!r}: dynamic creative ad sets (any ad row "
+                        f"with text variants) can only hold ONE ad. You have "
+                        f"{len(ads)} ads under this adset_name. Give each ad its "
+                        "own adset_name, or remove the '|' variants if you want "
+                        "them in the same ad set."
+                    )
                 # Auto-lookup ad set by name within this campaign. Only
                 # meaningful when the campaign already exists in Meta (a
                 # campaign just created can't have ad sets in it yet).
