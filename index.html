@@ -172,7 +172,7 @@
         <input id="gsheetUrl" type="url" placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=0" />
       </div>
       <div id="csvWrap" style="display:none;">
-        <label>Amazon Attribution raw export — needs <code>Ad group</code> (used as the join key) plus any of <code>Click-throughs</code>, <code>TotalDPV</code>, <code>TotalATC</code>, <code>TotalPurchase</code>, <code>TotalSales</code>. Optional <code>Date</code> column triggers date-range filtering. Daily rows for the same Ad group are aggregated automatically.</label>
+        <label>Amazon Attribution raw export — needs <code>Ad group</code> (used as the join key) plus any of <code>Click-throughs</code>, <code>TotalDPV</code>, <code>TotalATC</code>, <code>TotalPurchase</code>, <code>Total product sales final</code> (or <code>TotalSales</code>). Optional <code>Date</code> column triggers date-range filtering. Daily rows for the same Ad group are aggregated automatically.</label>
         <textarea id="amazonCsv" placeholder="Date,Ad group,Campaigns,Channel,Publisher,Click-throughs,TotalDPV,TotalATC,TotalPurchase,TotalSales
 2026.5.17,260514_Meta_Collab_AyakoKawai_tomato,2605_Collab_tr_tomato,Social,Meta,97,67,1,0,$0.00"></textarea>
       </div>
@@ -475,7 +475,7 @@ function parseCsv(text, since, until, fx) {
   const idxDpv = findIdx("totaldpv", "total dpv", "detail page view", "dpv");
   const idxAtc = findIdx("totalatc", "total atc", "add to cart", "atc");
   const idxPurch = findIdx("totalpurchase", "total purchase", "purchases", "purchase");
-  const idxSales = findIdx("totalsales", "total sales", "sales");
+  const idxSales = findIdx("total product sales final", "product sales final", "sales final", "totalsales", "total sales", "totalproductsales", "total product sales", "sales");
 
   const byKey = new Map();
   let filteredOut = 0;
