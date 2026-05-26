@@ -26,6 +26,14 @@ Skip the download/upload round-trip — keep everything in a Google Sheet:
    ```
 6. Same dry-run / live behavior as a file upload. The `gid` in the URL selects the tab.
 
+By default the fetch is limited to the cell range `A1:CB5000` (~80 columns × 5000 rows — comfortably covers the template). If your sheet has more rows, add a `range` parameter to the URL:
+
+```
+https://docs.google.com/spreadsheets/d/SHEET_ID/edit?range=A1:CB10000#gid=0
+```
+
+This keeps Google from evaluating cells outside the range, which is what makes formula-heavy / `IMPORTRANGE` sheets time out. Narrower ranges fetch dramatically faster.
+
 The sheet must be shared publicly with link-viewer access because the script reads it via Google's public CSV export endpoint (no OAuth). If you need to keep the sheet private, fall back to downloading as XLSX/CSV and uploading the file.
 
 ## Usage — Web UI (recommended)

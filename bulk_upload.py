@@ -277,14 +277,21 @@ def _filter_rows(rows):
 
 
 def _parse_sheet_url(url_or_id):
-    """Extract (sheet_id, gid) from a Google Sheets URL. Falls back to
-    treating the input as a bare sheet_id with gid=0 if it doesn't look
-    like a URL."""
+    """Extract (sheet_id, gid, range) from a Google Sheets URL. Falls
+    back to treating the input as a bare sheet_id with gid=0 and the
+    default range if it doesn't look like a URL.
+
+    Supports a custom range via `&range=A1:CB200` appended to the URL —
+    when present the export endpoint returns only that block instead of
+    evaluating the full workbook, which dramatically speeds up fetches
+    on large or formula-heavy sheets."""
     m = re.search(r"/spreadsheets/d/([A-Za-z0-9_-]+)", url_or_id)
     sheet_id = m.group(1) if m else url_or_id.strip()
     gid_m = re.search(r"[?&#]gid=(\d+)", url_or_id)
     gid = gid_m.group(1) if gid_m else "0"
-    return sheet_id, gid
+    range_m = re.search(r"[?&]range=([A-Za-z0-9:!_\.]+)", url_or_id)
+    cell_range = range_m.group(1) if range_m else None
+    return sheet_id, gid, cell_range
 
 
 def load_rows_from_sheet(url_or_id):
@@ -293,8 +300,17 @@ def load_rows_from_sheet(url_or_id):
     can read it without OAuth."""
     import io
 
-    sheet_id, gid = _parse_sheet_url(url_or_id)
-    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    sheet_id, gid, cell_range = _parse_sheet_url(url_or_id)
+    # Default range trims the export to the template's column count
+    # (~80 cols → 'CB') and a generous row count, so Google doesn't
+    # re-evaluate the whole workbook. Override via `&range=...` in the
+    # URL if you have more rows or want a different region.
+    if not cell_range:
+        cell_range = "A1:CB5000"
+    csv_url = (
+        f"https://docs.google.com/spreadsheets/d/{sheet_id}/export"
+        f"?format=csv&gid={gid}&range={cell_range}"
+    )
     req = urllib.request.Request(csv_url, headers={"User-Agent": "Mozilla/5.0"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
