@@ -711,14 +711,20 @@ def build_creative_spec(row, account=None, dry_run=False):
         # Partnership Ads "Second identity" — Ads Manager's "Second identity"
         # block (Page + IG of the sponsor). Defaults to the row's page_id /
         # instagram_user_id if the dedicated second_identity_* fields are
-        # blank.
+        # blank. Non-numeric placeholders (e.g. "influencer", "TBD") are
+        # skipped with a warning so they don't poison the API call.
         if partnership_code:
-            second_page = _get(row, "second_identity_page_id") or row.get("page_id")
-            if second_page:
-                spec["branded_content_sharing_partner_id"] = second_page
-            second_ig = _get(row, "second_identity_ig_id") or _get(row, "instagram_user_id")
-            if second_ig:
-                spec["instagram_user_id"] = second_ig
+            for label, col, fallback_col, api_field in [
+                ("second_identity_page_id", "second_identity_page_id", "page_id", "branded_content_sharing_partner_id"),
+                ("second_identity_ig_id", "second_identity_ig_id", "instagram_user_id", "instagram_user_id"),
+            ]:
+                raw = _get(row, col) or _get(row, fallback_col)
+                if not raw:
+                    continue
+                if not raw.isdigit():
+                    print(f"  Note: {label}={raw!r} isn't a numeric ID, skipping. Use the numeric Page/IG ID (paste from Ads Manager) or 'Name (123456789)' format.")
+                    continue
+                spec[api_field] = raw
             # "Identities to display in the header" radio. API field name
             # is a best-guess based on Meta's UI labels.
             display = _get(row, "identity_display").upper()
