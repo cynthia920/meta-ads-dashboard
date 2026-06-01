@@ -1,5 +1,23 @@
+const zeroDecimalCurrencies = new Set(['KRW', 'JPY', 'VND', 'CLP', 'ISK', 'HUF']);
+const currencyDecimals = zeroDecimalCurrencies.has(meta.currency) ? 0 : 2;
+
+const currencyFmt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: meta.currency,
+  minimumFractionDigits: currencyDecimals,
+  maximumFractionDigits: currencyDecimals,
+});
+
+const compactCurrencyFmt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: meta.currency,
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
 const fmt = {
-  currency: (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  currency: (v) => currencyFmt.format(v),
+  currencyCompact: (v) => compactCurrencyFmt.format(v),
   number:   (v) => v.toLocaleString('en-US'),
   percent:  (v) => v.toFixed(2) + '%'
 };
@@ -111,7 +129,7 @@ function renderTimeseriesChart() {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
       scales: {
-        y:  { position: 'left',  ticks: { callback: v => '$' + v }, grid: { color: '#f1f5f9' } },
+        y:  { position: 'left',  ticks: { callback: v => fmt.currencyCompact(v) }, grid: { color: '#f1f5f9' } },
         y1: { position: 'right', grid: { display: false } },
         x:  { grid: { display: false } }
       }
@@ -185,7 +203,15 @@ function renderCampaigns() {
   `).join('');
 }
 
+function renderHeader() {
+  const titleEl = document.getElementById('account-name');
+  const subEl = document.getElementById('account-subtitle');
+  if (titleEl) titleEl.textContent = meta.accountName + ' · ' + meta.accountId;
+  if (subEl) subEl.textContent = meta.dateRange + ' · Currency ' + meta.currency + ' · Generated ' + meta.generatedAt;
+}
+
 function renderAll() {
+  renderHeader();
   renderKpis();
   renderTimeseriesChart();
   renderPlacementChart();
