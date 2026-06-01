@@ -727,11 +727,23 @@ def build_creative_spec(row, account=None, dry_run=False):
     # because the post already has its content baked in.
     if existing_post or partnership_code:
         if partnership_code:
-            if "_" not in partnership_code:
+            parts = partnership_code.split("_")
+            if len(parts) != 2 or not all(p.isdigit() for p in parts):
                 sys.exit(
-                    f"Ad {row.get('ad_name')!r}: partnership_ad_code must be the full "
-                    "PARTNER_PAGE_ID_POST_ID format (with underscore) — the partner's "
-                    "Page ID is required since it's not your own Page."
+                    f"Ad {row.get('ad_name')!r}: partnership_ad_code "
+                    f"{partnership_code!r} is not in PAGE_ID_POST_ID format "
+                    "(two numeric IDs joined by '_'). Meta's Marketing API "
+                    "only accepts the underlying post ID — not the opaque "
+                    "alphanumeric share code that Business Suite displays.\n\n"
+                    "How to get the real ID:\n"
+                    "  - Open the partner's post on facebook.com — URL contains "
+                    "    .../posts/POSTID or .../PAGE_ID_POST_ID/ — copy the "
+                    "    combined PAGE_ID_POST_ID form.\n"
+                    "  - Or ask the partner for the post URL / post ID; "
+                    "    pair it with their Page ID (e.g. '1234567890_9876543210').\n"
+                    "  - Or redeem the share code in Ads Manager UI once, then "
+                    "    open the resulting ad and pull the object_story_id from "
+                    "    its creative."
                 )
             object_story_id = partnership_code
         else:
