@@ -311,7 +311,7 @@ async function fetchMeta(creds, since, until) {
   const params = new URLSearchParams({
     access_token: creds.metaToken,
     level: "ad",
-    fields: "ad_id,ad_name,spend,impressions,clicks,reach,inline_link_clicks,outbound_clicks,video_3_sec_watched_actions,video_thruplay_watched_actions,video_avg_time_watched_actions",
+    fields: "ad_id,ad_name,spend,impressions,clicks,reach,inline_link_clicks,outbound_clicks,actions,video_thruplay_watched_actions,video_avg_time_watched_actions",
     time_range: JSON.stringify({ since, until }),
     limit: "500",
   });
@@ -331,7 +331,7 @@ async function fetchMeta(creds, since, until) {
         reach: Number(r.reach || 0),
         linkClicks: Number(r.inline_link_clicks || 0),
         outboundClicks: sumActionType(r.outbound_clicks, "outbound_click"),
-        videoViews3s: sumActionType(r.video_3_sec_watched_actions, "video_view"),
+        videoViews3s: sumActionType(r.actions, "video_view"),
         videoThruplay: sumActionType(r.video_thruplay_watched_actions, "video_view"),
         videoAvgTime: pickActionValue(r.video_avg_time_watched_actions, "video_view"),
       });
