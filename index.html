@@ -202,6 +202,13 @@ const fmtMoney = (n) => n.toLocaleString("ko-KR", { style: "currency", currency:
 const fmtNum = (n) => n.toLocaleString("en-US");
 const fmtRoas = (n) => n == null ? "—" : n.toFixed(2) + "x";
 
+const AMAZON_DATE_OFFSET_DAYS = -1;
+function shiftDate(iso, days) {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function loadCreds() {
   const c = JSON.parse(localStorage.getItem("creds") || "{}");
   $("metaToken").value = c.metaToken || "";
@@ -802,17 +809,19 @@ async function autoBuildMapping() {
     const fx = getFx();
     const meta = await fetchMeta(creds, since, until);
 
+    const amzSince = shiftDate(since, AMAZON_DATE_OFFSET_DAYS);
+    const amzUntil = shiftDate(until, AMAZON_DATE_OFFSET_DAYS);
     let amazon;
     const source = $("amazonSource").value;
     if (source === "gsheet") {
       setStatus("Fetching Google Sheet…");
       const csvText = await fetchGsheetCsv($("gsheetUrl").value);
-      amazon = parseCsv(csvText, since, until, fx);
+      amazon = parseCsv(csvText, amzSince, amzUntil, fx);
     } else if (source === "csv") {
-      amazon = parseCsv($("amazonCsv").value, since, until, fx);
+      amazon = parseCsv($("amazonCsv").value, amzSince, amzUntil, fx);
     } else if (source === "api") {
       setStatus("Fetching Amazon Attribution…");
-      amazon = await fetchAmazonApi(creds, since, until, fx);
+      amazon = await fetchAmazonApi(creds, amzSince, amzUntil, fx);
     }
 
     const norm = (s) => (s || "").trim().toLowerCase();
@@ -888,15 +897,17 @@ async function run() {
     setStatus("Fetching Meta insights…");
     const fx = getFx();
     const metaPromise = fetchMeta(creds, since, until);
+    const amzSince = shiftDate(since, AMAZON_DATE_OFFSET_DAYS);
+    const amzUntil = shiftDate(until, AMAZON_DATE_OFFSET_DAYS);
     const source = $("amazonSource").value;
     let amazonPromise;
     if (source === "api") {
-      amazonPromise = fetchAmazonApi(creds, since, until, fx);
+      amazonPromise = fetchAmazonApi(creds, amzSince, amzUntil, fx);
     } else if (source === "gsheet") {
       amazonPromise = fetchGsheetCsv($("gsheetUrl").value)
-        .then(text => parseCsv(text, since, until, fx));
+        .then(text => parseCsv(text, amzSince, amzUntil, fx));
     } else {
-      amazonPromise = Promise.resolve(parseCsv($("amazonCsv").value, since, until, fx));
+      amazonPromise = Promise.resolve(parseCsv($("amazonCsv").value, amzSince, amzUntil, fx));
     }
     const [meta, amazon] = await Promise.all([metaPromise, amazonPromise]);
     const rows = joinByMapping(meta, amazon, mapping);
