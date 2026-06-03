@@ -80,6 +80,8 @@
   .bulkbar .spacer { flex: 1; }
   td.checkcol, th.checkcol { width: 28px; padding-left: 12px; padding-right: 0; }
   td.checkcol input, th.checkcol input { width: auto; cursor: pointer; }
+  tr.row-hidden td { opacity: 0.5; }
+  tr.row-hidden td .chip-hidden { opacity: 1; }
 
   .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #2a313b; flex-shrink: 0; }
   .author { display: flex; gap: 8px; align-items: center; }
@@ -732,7 +734,7 @@ function renderRow(c) {
   const checked = state.selected.has(c.id) ? "checked" : "";
 
   return `
-    <tr id="row-${cssId(c.id)}">
+    <tr id="row-${cssId(c.id)}" class="${c.isHidden ? "row-hidden" : ""}">
       <td class="checkcol"><input type="checkbox" ${checked} onchange="toggleSelect('${escapeJs(c.id)}', this.checked)" /></td>
       <td>
         <select class="sent-select sent-${sentiment}"
@@ -847,12 +849,20 @@ function setSentiment(commentId, value) {
 
 async function bulkAction(kind) {
   const ids = [...state.selected];
-  if (!ids.length) return;
+  if (!ids.length) {
+    setInboxStatus("Nothing selected. Tick a row first.", true);
+    return;
+  }
   const targets = state.comments.filter(c => ids.includes(c.id));
-  const label = kind === "hide" ? "hide" : kind === "unhide" ? "unhide" : "delete";
-  if (!confirm(`${label[0].toUpperCase() + label.slice(1)} ${targets.length} comment(s)?`)) return;
+  const label = kind === "hide" ? "Hide" : kind === "unhide" ? "Unhide" : "Delete";
+  if (!confirm(`${label} ${targets.length} comment(s)?`)) {
+    setInboxStatus("Cancelled.");
+    return;
+  }
 
-  $("bulkStatus").textContent = `Working… 0 / ${targets.length}`;
+  console.log(`[bulk] ${kind} starting on ${targets.length} comment(s)`, targets);
+  setInboxStatus(""); // clear any prior banner
+
   let done = 0, failed = 0;
   const errors = [];
   const removedIds = new Set();
@@ -860,39 +870,53 @@ async function bulkAction(kind) {
   for (const c of targets) {
     try {
       if (kind === "delete") {
+        console.log(`[bulk] DELETE /${c.id}`);
         await graphDelete("/" + c.id, c.pageAccessToken);
         removedIds.add(c.id);
       } else if (kind === "hide") {
         if (c.platform === "FB_PAGE") {
+          console.log(`[bulk] POST /${c.id} is_hidden=true (FB)`);
           await graphPost("/" + c.id, c.pageAccessToken, { is_hidden: true });
         } else {
           if (c.isReply) throw new Error("IG replies cannot be hidden");
+          console.log(`[bulk] POST /${c.id} hide=true (IG)`);
           await graphPost("/" + c.id, c.pageAccessToken, { hide: true });
         }
         c.isHidden = true;
       } else if (kind === "unhide") {
         if (c.platform !== "FB_PAGE") throw new Error("Unhide only supported on FB Page comments");
+        console.log(`[bulk] POST /${c.id} is_hidden=false (FB)`);
         await graphPost("/" + c.id, c.pageAccessToken, { is_hidden: false });
         c.isHidden = false;
       }
       done++;
     } catch (e) {
       failed++;
-      errors.push(`${c.authorName}: ${e.message}`);
+      console.error(`[bulk] ${c.id}:`, e);
+      errors.push(`${c.authorName} (${c.platform === "FB_PAGE" ? "FB" : "IG"}): ${e.message}`);
     }
-    $("bulkStatus").textContent = `Working… ${done + failed} / ${targets.length}`;
+    $("bulkStatus").textContent = `${done + failed} / ${targets.length}`;
   }
 
   if (removedIds.size) {
     state.comments = state.comments.filter(c => !removedIds.has(c.id));
     for (const id of removedIds) state.selected.delete(id);
   }
-  // Drop successful hide/unhide from selection too — clearer feedback.
-  for (const c of targets) state.selected.delete(c.id);
 
-  $("bulkStatus").textContent = `${done} done` + (failed ? `, ${failed} failed` : "");
-  if (errors.length) setInboxStatus(errors.join(" · "), true);
-  else setInboxStatus("");
+  // Persistent banner so the user actually sees what happened. Selection is
+  // intentionally kept so you can re-run, change action, or clear manually.
+  const verb = kind === "hide" ? "Hidden" : kind === "unhide" ? "Unhidden" : "Deleted";
+  let bannerHtml;
+  if (failed === 0) {
+    bannerHtml = `<div class="info"><strong>${verb} ${done} comment(s).</strong></div>`;
+  } else if (done === 0) {
+    bannerHtml = `<div class="error"><strong>${label} failed on all ${failed} comment(s).</strong><br>${errors.map(escapeHtml).join("<br>")}</div>`;
+  } else {
+    bannerHtml = `<div class="error"><strong>${verb} ${done}, failed ${failed}.</strong><br>${errors.map(escapeHtml).join("<br>")}</div>`;
+  }
+  $("inboxStatusBox").innerHTML = bannerHtml;
+
+  $("bulkStatus").textContent = `${done} done${failed ? `, ${failed} failed` : ""}`;
   renderInbox();
 }
 
