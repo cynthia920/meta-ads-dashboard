@@ -57,10 +57,19 @@
   .chip-ig { background: #6e1a4a33; color: #f9a8d4; }
   .chip-hidden { background: #6e552033; color: #fcd34d; }
   .chip-reply { background: #2a313b; color: #8a93a0; }
-  .chip-sentiment { cursor: pointer; user-select: none; font-weight: 600; }
-  .chip-positive { background: #14532d55; color: #86efac; }
-  .chip-negative { background: #6e202055; color: #fca5a5; }
-  .chip-neutral  { background: #2a313b;   color: #cbd5e1; }
+
+  .sent-select {
+    padding: 2px 22px 2px 10px; border-radius: 999px; font-size: 11px;
+    font-weight: 600; border: none; cursor: pointer;
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    background-repeat: no-repeat; background-position: right 6px center; background-size: 10px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23cbd5e1' d='M2 4l4 4 4-4z'/></svg>");
+  }
+  .sent-select:focus { outline: 1px solid #2563eb; }
+  .sent-select option { background: #15191f; color: #e6e8eb; }
+  .sent-positive { background-color: #14532d55; color: #86efac; }
+  .sent-negative { background-color: #6e202055; color: #fca5a5; }
+  .sent-neutral  { background-color: #2a313b;   color: #cbd5e1; }
 
   .bulkbar {
     display: none; gap: 8px; align-items: center; flex-wrap: wrap;
@@ -720,16 +729,19 @@ function renderRow(c) {
   const fbCanHide = c.platform === "FB_PAGE";
   const fbHideLabel = c.isHidden ? "Unhide" : "Hide";
   const sentiment = c.sentiment || "neutral";
-  const sentLabel = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
   const checked = state.selected.has(c.id) ? "checked" : "";
 
   return `
     <tr id="row-${cssId(c.id)}">
       <td class="checkcol"><input type="checkbox" ${checked} onchange="toggleSelect('${escapeJs(c.id)}', this.checked)" /></td>
       <td>
-        <span class="chip chip-sentiment chip-${sentiment}"
-              title="Click to override"
-              onclick="cycleSentiment('${escapeJs(c.id)}')">${sentLabel}</span>
+        <select class="sent-select sent-${sentiment}"
+                title="Override sentiment"
+                onchange="setSentiment('${escapeJs(c.id)}', this.value)">
+          <option value="positive" ${sentiment === "positive" ? "selected" : ""}>Positive</option>
+          <option value="neutral"  ${sentiment === "neutral"  ? "selected" : ""}>Neutral</option>
+          <option value="negative" ${sentiment === "negative" ? "selected" : ""}>Negative</option>
+        </select>
       </td>
       <td>
         <div class="author">
@@ -814,14 +826,23 @@ function updateBulkBar() {
   bar.classList.toggle("open", n > 0);
 }
 
-function cycleSentiment(commentId) {
+function setSentiment(commentId, value) {
   const c = state.comments.find(x => x.id === commentId);
   if (!c) return;
-  const order = ["positive", "neutral", "negative"];
-  const next = order[(order.indexOf(c.sentiment) + 1) % order.length];
-  c.sentiment = next;
-  state.overrides[commentId] = next;
-  renderInbox();
+  if (!["positive", "neutral", "negative"].includes(value)) return;
+  c.sentiment = value;
+  state.overrides[commentId] = value;
+  // Recolor the select in place rather than re-rendering the table — keeps the
+  // row visible even when a sentiment filter is active. The next Refresh /
+  // filter change will reapply filters.
+  const row = document.getElementById("row-" + cssId(commentId));
+  if (row) {
+    const sel = row.querySelector(".sent-select");
+    if (sel) {
+      sel.classList.remove("sent-positive", "sent-neutral", "sent-negative");
+      sel.classList.add("sent-" + value);
+    }
+  }
 }
 
 async function bulkAction(kind) {
