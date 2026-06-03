@@ -49,6 +49,20 @@
   .chip-ig { background: #6e1a4a33; color: #f9a8d4; }
   .chip-hidden { background: #6e552033; color: #fcd34d; }
   .chip-reply { background: #2a313b; color: #8a93a0; }
+  .chip-sentiment { cursor: pointer; user-select: none; font-weight: 600; }
+  .chip-positive { background: #14532d55; color: #86efac; }
+  .chip-negative { background: #6e202055; color: #fca5a5; }
+  .chip-neutral  { background: #2a313b;   color: #cbd5e1; }
+
+  .bulkbar {
+    display: none; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: #122d3a; border: 1px solid #20556e; color: #cbd5e1;
+    padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px;
+  }
+  .bulkbar.open { display: flex; }
+  .bulkbar .spacer { flex: 1; }
+  td.checkcol, th.checkcol { width: 28px; padding-left: 12px; padding-right: 0; }
+  td.checkcol input, th.checkcol input { width: auto; cursor: pointer; }
 
   .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #2a313b; flex-shrink: 0; }
   .author { display: flex; gap: 8px; align-items: center; }
@@ -145,10 +159,25 @@
           <option value="hidden">Hidden only</option>
           <option value="unreplied">Needs reply</option>
         </select>
+        <select id="filterSentiment" onchange="renderInbox()">
+          <option value="all">All sentiments</option>
+          <option value="positive">Positive</option>
+          <option value="neutral">Neutral</option>
+          <option value="negative">Negative</option>
+        </select>
         <span class="spacer"></span>
         <span id="inboxStatus" class="muted"></span>
       </div>
       <div id="inboxStatusBox"></div>
+      <div class="bulkbar" id="bulkbar">
+        <span><strong id="bulkCount">0</strong> selected</span>
+        <button class="small" onclick="bulkAction('hide')">Hide</button>
+        <button class="small" onclick="bulkAction('unhide')">Unhide (FB only)</button>
+        <button class="small danger" onclick="bulkAction('delete')">Delete</button>
+        <span class="spacer"></span>
+        <span id="bulkStatus" class="muted"></span>
+        <button class="small" onclick="clearSelection()">Clear</button>
+      </div>
       <div id="inboxBody"></div>
     </details>
   </div>
@@ -383,10 +412,52 @@ function disconnect(key) {
   renderInbox();
 }
 
+// -------- sentiment (heuristic, run in browser) --------
+// Loose lexicon — works across the kind of EN/emoji-heavy product comments shown
+// in beauty/lifestyle IG accounts. Negative is weighted higher because a single
+// strong negative cue usually outweighs polite filler.
+const POS_WORDS = [
+  "love","loved","loving","amazing","awesome","beautiful","gorgeous","stunning","perfect","perfection",
+  "flawless","best","great","fantastic","excellent","incredible","adorable","cute","pretty","obsessed",
+  "favorite","favourite","fav","must","need","want","yes","yass","slay","queen","king","fire","dope","lit",
+  "goals","magical","dreamy","divine","heavenly","glowing","plump","plumping","smooth","soft","fresh",
+  "vibe","yum","yummy","delicious","tasty","wow","omg","wonderful","brilliant","superb","top","quality",
+  "recommend","worth","happy","glad","thank","thanks","grateful","blessed","beauty","beautifully"
+];
+const NEG_WORDS = [
+  "hate","bad","terrible","awful","worst","ugly","gross","disgust","disgusting","scam","fake","fraud",
+  "broken","refund","ripoff","rip-off","garbage","trash","regret","disappointed","disappointing",
+  "waste","poor","cheap","overpriced","useless","horrible","never","won't","wont","don't","do not",
+  "stop","sucks","sucked","lame","mid","meh","boring","ew","yuck","nasty","spam","blocked","reported"
+];
+const POS_EMOJI = ["❤","💕","💖","💗","💘","💞","💟","😍","🥰","😘","😊","😀","😁","🤩","👍","👏","🔥","✨","💯","🙌","💪","🥳","⭐","🌟","😻","☺","😆","🤗","💐","🌹","🎉","💝"];
+const NEG_EMOJI = ["😠","😡","🤬","👎","😤","😢","😭","😞","😔","😩","😫","💔","🤢","🤮","😒","🙄","🤡","💀"];
+
+function classifySentiment(text) {
+  const t = String(text || "").toLowerCase();
+  if (!t.trim()) return "neutral";
+  let score = 0;
+  for (const w of POS_WORDS) {
+    const re = new RegExp("(^|[^a-z])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z]|$)", "g");
+    const m = t.match(re); if (m) score += m.length;
+  }
+  for (const w of NEG_WORDS) {
+    const re = new RegExp("(^|[^a-z])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z]|$)", "g");
+    const m = t.match(re); if (m) score -= m.length * 1.5;
+  }
+  for (const e of POS_EMOJI) if (text && text.includes(e)) score += 1;
+  for (const e of NEG_EMOJI) if (text && text.includes(e)) score -= 1.5;
+  if (score >= 1) return "positive";
+  if (score <= -1) return "negative";
+  return "neutral";
+}
+
 // -------- inbox --------
 const state = {
   comments: [],            // flat list of comments across accounts
   lastFetchByAccount: {},  // key -> ISO time
+  selected: new Set(),     // selected comment ids
+  overrides: {},           // id -> sentiment override
 };
 
 function renderAccountFilter() {
@@ -441,6 +512,7 @@ async function fetchFbComments(account) {
       createdTime: post.created_time,
     };
     for (const c of (post.comments && post.comments.data) || []) {
+      const msg = c.message || "";
       out.push({
         id: c.id,
         accountKey: account.key,
@@ -450,12 +522,13 @@ async function fetchFbComments(account) {
         authorName: (c.from && c.from.name) || "Unknown",
         authorId: c.from && c.from.id,
         authorAvatar: c.from && c.from.picture && c.from.picture.data && c.from.picture.data.url,
-        message: c.message || "",
+        message: msg,
         createdTime: c.created_time,
         isHidden: !!c.is_hidden,
         isReply: !!(c.parent && c.parent.id && c.parent.id !== post.id),
         likeCount: c.like_count || 0,
         replyCount: c.comment_count || 0,
+        sentiment: state.overrides[c.id] || classifySentiment(msg),
         post: postCtx,
       });
     }
@@ -478,6 +551,7 @@ async function fetchIgComments(account) {
       createdTime: m.timestamp,
     };
     for (const c of (m.comments && m.comments.data) || []) {
+      const msg = c.text || "";
       out.push({
         id: c.id,
         accountKey: account.key,
@@ -485,15 +559,17 @@ async function fetchIgComments(account) {
         platform: "IG_BUSINESS",
         pageAccessToken: account.pageAccessToken,
         authorName: c.username ? "@" + c.username : "Unknown",
-        message: c.text || "",
+        message: msg,
         createdTime: c.timestamp,
         isHidden: false, // IG doesn't return hidden state in this read shape
         isReply: false,
         likeCount: c.like_count || 0,
         replyCount: (c.replies && c.replies.data && c.replies.data.length) || 0,
+        sentiment: state.overrides[c.id] || classifySentiment(msg),
         post: postCtx,
       });
       for (const r of (c.replies && c.replies.data) || []) {
+        const rmsg = r.text || "";
         out.push({
           id: r.id,
           accountKey: account.key,
@@ -501,12 +577,13 @@ async function fetchIgComments(account) {
           platform: "IG_BUSINESS",
           pageAccessToken: account.pageAccessToken,
           authorName: r.username ? "@" + r.username : "Unknown",
-          message: r.text || "",
+          message: rmsg,
           createdTime: r.timestamp,
           isHidden: false,
           isReply: true,
           likeCount: r.like_count || 0,
           replyCount: 0,
+          sentiment: state.overrides[r.id] || classifySentiment(rmsg),
           post: postCtx,
         });
       }
@@ -520,21 +597,32 @@ function renderInbox() {
   let rows = state.comments;
   const accountFilter = $("filterAccount").value;
   const statusFilter = $("filterStatus").value;
+  const sentimentFilter = ($("filterSentiment") && $("filterSentiment").value) || "all";
   if (accountFilter) rows = rows.filter(c => c.accountKey === accountFilter);
   if (statusFilter === "visible") rows = rows.filter(c => !c.isHidden);
   else if (statusFilter === "hidden") rows = rows.filter(c => c.isHidden);
   else if (statusFilter === "unreplied") rows = rows.filter(c => !c.isReply && (c.replyCount || 0) === 0);
+  if (sentimentFilter !== "all") rows = rows.filter(c => c.sentiment === sentimentFilter);
+
+  // Drop selections that aren't in the current view anymore
+  const visibleIds = new Set(rows.map(r => r.id));
+  for (const id of [...state.selected]) if (!visibleIds.has(id)) state.selected.delete(id);
+  updateBulkBar();
 
   if (!rows.length) {
     host.innerHTML = `<div class="empty">No comments to show. Click Refresh.</div>`;
     return;
   }
 
+  const allChecked = rows.length > 0 && rows.every(r => state.selected.has(r.id));
+
   host.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th style="width: 26%;">Author</th>
+          <th class="checkcol"><input type="checkbox" id="selectAll" ${allChecked ? "checked" : ""} onchange="toggleSelectAllVisible(this.checked)" /></th>
+          <th style="width: 100px;">Status</th>
+          <th style="width: 22%;">Author</th>
           <th>Comment</th>
           <th style="width: 140px;">Account</th>
           <th style="width: 140px;">Time</th>
@@ -567,9 +655,18 @@ function renderRow(c) {
 
   const fbCanHide = c.platform === "FB_PAGE";
   const fbHideLabel = c.isHidden ? "Unhide" : "Hide";
+  const sentiment = c.sentiment || "neutral";
+  const sentLabel = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+  const checked = state.selected.has(c.id) ? "checked" : "";
 
   return `
     <tr id="row-${cssId(c.id)}">
+      <td class="checkcol"><input type="checkbox" ${checked} onchange="toggleSelect('${escapeJs(c.id)}', this.checked)" /></td>
+      <td>
+        <span class="chip chip-sentiment chip-${sentiment}"
+              title="Click to override"
+              onclick="cycleSentiment('${escapeJs(c.id)}')">${sentLabel}</span>
+      </td>
       <td>
         <div class="author">
           ${c.authorAvatar ? `<img class="avatar" src="${c.authorAvatar}" alt="" />` : `<div class="avatar"></div>`}
@@ -606,6 +703,112 @@ function renderRow(c) {
 
 function toggleReply(id) {
   $("reply-" + id).classList.toggle("open");
+}
+
+function toggleSelect(commentId, checked) {
+  if (checked) state.selected.add(commentId);
+  else state.selected.delete(commentId);
+  updateBulkBar();
+  const selectAll = $("selectAll");
+  if (selectAll) {
+    const rows = visibleRows();
+    selectAll.checked = rows.length > 0 && rows.every(r => state.selected.has(r.id));
+  }
+}
+
+function toggleSelectAllVisible(checked) {
+  for (const r of visibleRows()) {
+    if (checked) state.selected.add(r.id);
+    else state.selected.delete(r.id);
+  }
+  renderInbox();
+}
+
+function clearSelection() {
+  state.selected.clear();
+  renderInbox();
+}
+
+function visibleRows() {
+  // Mirror the filter logic in renderInbox so bulk ops match what the user sees.
+  let rows = state.comments;
+  const accountFilter = $("filterAccount").value;
+  const statusFilter = $("filterStatus").value;
+  const sentimentFilter = ($("filterSentiment") && $("filterSentiment").value) || "all";
+  if (accountFilter) rows = rows.filter(c => c.accountKey === accountFilter);
+  if (statusFilter === "visible") rows = rows.filter(c => !c.isHidden);
+  else if (statusFilter === "hidden") rows = rows.filter(c => c.isHidden);
+  else if (statusFilter === "unreplied") rows = rows.filter(c => !c.isReply && (c.replyCount || 0) === 0);
+  if (sentimentFilter !== "all") rows = rows.filter(c => c.sentiment === sentimentFilter);
+  return rows;
+}
+
+function updateBulkBar() {
+  const bar = $("bulkbar");
+  const n = state.selected.size;
+  $("bulkCount").textContent = String(n);
+  bar.classList.toggle("open", n > 0);
+}
+
+function cycleSentiment(commentId) {
+  const c = state.comments.find(x => x.id === commentId);
+  if (!c) return;
+  const order = ["positive", "neutral", "negative"];
+  const next = order[(order.indexOf(c.sentiment) + 1) % order.length];
+  c.sentiment = next;
+  state.overrides[commentId] = next;
+  renderInbox();
+}
+
+async function bulkAction(kind) {
+  const ids = [...state.selected];
+  if (!ids.length) return;
+  const targets = state.comments.filter(c => ids.includes(c.id));
+  const label = kind === "hide" ? "hide" : kind === "unhide" ? "unhide" : "delete";
+  if (!confirm(`${label[0].toUpperCase() + label.slice(1)} ${targets.length} comment(s)?`)) return;
+
+  $("bulkStatus").textContent = `Working… 0 / ${targets.length}`;
+  let done = 0, failed = 0;
+  const errors = [];
+  const removedIds = new Set();
+
+  for (const c of targets) {
+    try {
+      if (kind === "delete") {
+        await graphDelete("/" + c.id, c.pageAccessToken);
+        removedIds.add(c.id);
+      } else if (kind === "hide") {
+        if (c.platform === "FB_PAGE") {
+          await graphPost("/" + c.id, c.pageAccessToken, { is_hidden: true });
+        } else {
+          if (c.isReply) throw new Error("IG replies cannot be hidden");
+          await graphPost("/" + c.id, c.pageAccessToken, { hide: true });
+        }
+        c.isHidden = true;
+      } else if (kind === "unhide") {
+        if (c.platform !== "FB_PAGE") throw new Error("Unhide only supported on FB Page comments");
+        await graphPost("/" + c.id, c.pageAccessToken, { is_hidden: false });
+        c.isHidden = false;
+      }
+      done++;
+    } catch (e) {
+      failed++;
+      errors.push(`${c.authorName}: ${e.message}`);
+    }
+    $("bulkStatus").textContent = `Working… ${done + failed} / ${targets.length}`;
+  }
+
+  if (removedIds.size) {
+    state.comments = state.comments.filter(c => !removedIds.has(c.id));
+    for (const id of removedIds) state.selected.delete(id);
+  }
+  // Drop successful hide/unhide from selection too — clearer feedback.
+  for (const c of targets) state.selected.delete(c.id);
+
+  $("bulkStatus").textContent = `${done} done` + (failed ? `, ${failed} failed` : "");
+  if (errors.length) setInboxStatus(errors.join(" · "), true);
+  else setInboxStatus("");
+  renderInbox();
 }
 
 function findComment(id) {
@@ -689,6 +892,9 @@ function escapeHtml(s) {
 }
 function cssId(s) {
   return String(s).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+function escapeJs(s) {
+  return String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 function setLookupStatus(msg, isError) {
   const el = $("lookupStatus");
