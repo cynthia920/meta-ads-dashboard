@@ -823,6 +823,7 @@ const state = {
   overrides: loadOverrides(), // id -> sentiment override (hydrated from localStorage)
   pendingIds: new Set(),   // override edits not yet saved
   fetchSummary: [],        // [{ accountKey, name, platform, postsChecked, commentsFound, error }]
+  adDiscovery: null,       // { byPage, adAccounts, totalAdPosts, errors } from last refresh
 };
 
 function loadOverrides() {
@@ -857,18 +858,21 @@ async function refreshInbox() {
 
   const includeAds = !!($("includeAds") && $("includeAds").checked);
   let adPostsByPage = new Map();
+  state.adDiscovery = null;
   if (includeAds) {
     $("inboxStatus").textContent = "Discovering ad creatives…";
-    adPostsByPage = await discoverAdPostsByPage();
-    const totalAdPosts = [...adPostsByPage.values()].reduce((n, s) => n + s.size, 0);
-    console.log(`[ads] found ${totalAdPosts} unique ad-referenced post(s) across ${adPostsByPage.size} page(s)`);
+    state.adDiscovery = await discoverAdPostsByPage();
+    adPostsByPage = state.adDiscovery.byPage;
   }
+  renderDiagnostics();
 
   const all = [];
   for (const a of accounts) {
+    const adsForThisPage = (adPostsByPage.get(a.id) || new Set()).size;
     const summary = {
       accountKey: a.key, name: a.name, platform: a.platform,
-      postsChecked: 0, commentsFound: 0, extraFromAds: 0, error: null,
+      postsChecked: 0, commentsFound: 0, extraFromAds: 0,
+      adPostsAvailable: adsForThisPage, error: null,
     };
     try {
       const result = a.platform === "FB_PAGE"
@@ -894,18 +898,42 @@ async function refreshInbox() {
 
 function renderDiagnostics() {
   const host = $("inboxDiagnostics");
-  if (!state.fetchSummary.length) { host.innerHTML = ""; return; }
+  if (!state.fetchSummary.length && !state.adDiscovery) { host.innerHTML = ""; return; }
+
+  let adHeader = "";
+  const ad = state.adDiscovery;
+  if (ad) {
+    if (ad.errors.length && ad.adAccounts === 0) {
+      adHeader = `<div class="diag-row"><span class="chip">ADS</span><span class="name">Ad-account discovery</span><span class="err">${escapeHtml(ad.errors[0])}</span></div>`;
+    } else {
+      const pageCount = ad.byPage.size;
+      adHeader = `<div class="diag-row"><span class="chip">ADS</span><span class="name">Ad-account discovery</span><span class="${ad.totalAdPosts ? "ok" : "zero"}">${ad.adAccounts} ad account(s), ${ad.totalAdPosts} ad-referenced post(s) across ${pageCount} page(s)${ad.errors.length ? `, ${ad.errors.length} error(s) — see console` : ""}</span></div>`;
+    }
+  }
+
   host.innerHTML = `
     <div class="diag">
+      ${adHeader}
       ${state.fetchSummary.map(s => {
         const platLabel = s.platform === "FB_PAGE" ? "FB" : "IG";
+        const noun = s.platform === "FB_PAGE" ? "post" : "media";
+        let suffix = "";
+        if (s.platform === "FB_PAGE" && ad) {
+          if (s.adPostsAvailable > 0 && s.extraFromAds > 0) {
+            suffix = `, +${s.extraFromAds} via ads`;
+          } else if (s.adPostsAvailable > 0 && s.extraFromAds === 0) {
+            suffix = `, ${s.adPostsAvailable} ad post(s) already covered`;
+          } else if (s.adPostsAvailable === 0 && ad.adAccounts > 0) {
+            suffix = `, no ads found for this page`;
+          }
+        }
         let right;
         if (s.error) {
           right = `<span class="err">${escapeHtml(s.error)}</span>`;
         } else if (s.commentsFound === 0) {
-          right = `<span class="zero">0 comments in ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)${s.extraFromAds ? `, +${s.extraFromAds} via ads` : ""}</span>`;
+          right = `<span class="zero">0 comments in ${s.postsChecked} ${noun}(s)${suffix}</span>`;
         } else {
-          right = `<span class="ok">${s.commentsFound} comment(s) from ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)${s.extraFromAds ? `, +${s.extraFromAds} via ads` : ""}</span>`;
+          right = `<span class="ok">${s.commentsFound} comment(s) from ${s.postsChecked} ${noun}(s)${suffix}</span>`;
         }
         return `<div class="diag-row">
           <span class="chip chip-${s.platform === "FB_PAGE" ? "fb" : "ig"}">${platLabel}</span>
@@ -918,33 +946,40 @@ function renderDiagnostics() {
 }
 
 // Walk /me/adaccounts -> /act_*/ads, group every ad's effective_object_story_id
-// by page id. Returns Map<pageId, Set<postId>>. Lets the FB fetch pull comments
-// from ad creatives (organic or dark) that the page's own endpoints didn't return.
+// by page id. Lets the FB fetch pull comments from ad creatives (organic or
+// dark) that the page's own endpoints didn't return. Returns full discovery
+// info so the UI can surface what happened.
 async function discoverAdPostsByPage() {
+  const info = { byPage: new Map(), adAccounts: 0, totalAdPosts: 0, errors: [] };
   const creds = getCreds();
-  if (!creds.metaToken) return new Map();
+  if (!creds.metaToken) { info.errors.push("No token saved"); return info; }
   let adAccounts = [];
   try {
     const body = await graphGet("/me/adaccounts", creds.metaToken, { fields: "id,name", limit: 200 });
     adAccounts = body.data || [];
   } catch (e) {
+    info.errors.push("/me/adaccounts: " + e.message);
     console.warn("[ads] /me/adaccounts failed (token may lack ads_read):", e.message);
-    return new Map();
+    return info;
   }
-  const out = new Map();
+  info.adAccounts = adAccounts.length;
   for (const act of adAccounts) {
     let params = { fields: "effective_object_story_id", limit: 500 };
     let pages = 0;
     while (pages < 10) {
       let body;
       try { body = await graphGet("/" + act.id + "/ads", creds.metaToken, params); }
-      catch (e) { console.warn(`[ads] ${act.id} /ads failed:`, e.message); break; }
+      catch (e) {
+        info.errors.push(`${act.name || act.id}: ${e.message}`);
+        console.warn(`[ads] ${act.id} /ads failed:`, e.message);
+        break;
+      }
       for (const ad of (body.data || [])) {
         const sid = ad.effective_object_story_id;
         if (!sid || sid.indexOf("_") < 0) continue;
         const pageId = sid.split("_", 1)[0];
-        if (!out.has(pageId)) out.set(pageId, new Set());
-        out.get(pageId).add(sid);
+        if (!info.byPage.has(pageId)) info.byPage.set(pageId, new Set());
+        info.byPage.get(pageId).add(sid);
       }
       const after = body.paging && body.paging.cursors && body.paging.cursors.after;
       if (!after) break;
@@ -952,7 +987,14 @@ async function discoverAdPostsByPage() {
       pages++;
     }
   }
-  return out;
+  info.totalAdPosts = [...info.byPage.values()].reduce((n, s) => n + s.size, 0);
+  console.log("[ads] discovery:", {
+    adAccounts: info.adAccounts,
+    totalAdPosts: info.totalAdPosts,
+    pages: [...info.byPage.entries()].map(([k, v]) => [k, v.size]),
+    errors: info.errors,
+  });
+  return info;
 }
 
 async function fetchFbComments(account, adPostsByPage) {
