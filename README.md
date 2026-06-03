@@ -19,16 +19,38 @@ The token, connected accounts, and any cached state live in your browser's
 
 Generate a user token (Graph API Explorer or your own OAuth flow) with:
 
-- `pages_show_list` — list your Pages
-- `pages_read_engagement` — read Page posts and their comments
-- `pages_manage_engagement` — reply, hide, delete comments on FB Pages
-- `instagram_basic` — read IG Business profile + media
-- `instagram_manage_comments` — reply, hide, delete comments on IG
+**Facebook Pages**
+- `pages_show_list` — required for `/me/accounts` to list the Pages you admin.
+- `pages_read_engagement` — read your Page's posts, comments, reactions, basic metadata.
+- `pages_read_user_content` — read user-generated content on your Page (visitor
+  posts, and the comment threads Meta classifies as UGC). Without this some
+  comment lists come back empty.
+- `pages_manage_engagement` — reply, hide/unhide, delete comments.
+
+**Instagram Business / Creator (linked to a Page)**
+- `instagram_basic` — discover the IG Business account via its linked Page, read
+  profile, media, captions, comments.
+- `instagram_manage_comments` — reply, hide, delete IG comments.
+
+**If the Page or IG account is owned by a Business Manager (common for brands)**
+- `business_management` — without this, `/me/accounts` silently omits Business
+  Manager-owned Pages and you'll see "0 accounts found".
 
 Each Page you connect gets its own Page Access Token returned from
 `/me/accounts`; the dashboard uses that token for read/write on that Page and
 its linked IG Business account, so even if your user token expires, the
 connected Pages keep working until their Page tokens roll over.
+
+> The user token from Graph API Explorer lasts ~1–2 hours. For something more
+> durable, exchange it for a long-lived token via
+> `GET /oauth/access_token?grant_type=fb_exchange_token&client_id=...&client_secret=...&fb_exchange_token=...`
+> then paste the long-lived one into the dashboard. The Page tokens we store
+> after **Look up accounts** outlive the user token regardless.
+>
+> These scopes work without App Review for users who are admins / developers /
+> testers of the app. For a non-admin teammate to use their own token you'll
+> need App Review on `pages_manage_engagement`, `instagram_manage_comments`,
+> `pages_read_user_content`, and `business_management`.
 
 ## What it does
 
