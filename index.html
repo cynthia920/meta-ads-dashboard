@@ -575,13 +575,24 @@ function graphUrl(path, params) {
   }
   return url.toString();
 }
+function graphError(body, res) {
+  const g = body && body.error;
+  const msg = (g && (g.error_user_msg || g.message)) || (res && res.statusText) || "request failed";
+  const err = new Error("Graph: " + msg);
+  err.graph = g || null;
+  return err;
+}
+function isAlreadyInDesiredState(err) {
+  // FB returns "Duplicate Mark Spam Request" / "Duplicate Unmark Spam Request" when
+  // is_hidden is already in the requested state. Treat as success.
+  const t = err && err.graph && err.graph.error_user_title;
+  return t === "Duplicate Mark Spam Request" || t === "Duplicate Unmark Spam Request";
+}
 async function graphGet(path, accessToken, params) {
   const url = graphUrl(path, Object.assign({ access_token: accessToken }, params || {}));
   const res = await fetch(url);
   const body = await res.json();
-  if (!res.ok || body.error) {
-    throw new Error("Graph: " + (body.error && body.error.message ? body.error.message : res.statusText));
-  }
+  if (!res.ok || body.error) throw graphError(body, res);
   return body;
 }
 async function graphPost(path, accessToken, params) {
@@ -595,18 +606,14 @@ async function graphPost(path, accessToken, params) {
     body: form,
   });
   const body = await res.json();
-  if (!res.ok || body.error) {
-    throw new Error("Graph: " + (body.error && body.error.message ? body.error.message : res.statusText));
-  }
+  if (!res.ok || body.error) throw graphError(body, res);
   return body;
 }
 async function graphDelete(path, accessToken) {
   const url = graphUrl(path, { access_token: accessToken });
   const res = await fetch(url, { method: "DELETE" });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok || body.error) {
-    throw new Error("Graph: " + (body.error && body.error.message ? body.error.message : res.statusText));
-  }
+  if (!res.ok || body.error) throw graphError(body, res);
   return body;
 }
 
@@ -1226,9 +1233,14 @@ async function bulkAction(kind) {
       }
       done++;
     } catch (e) {
-      failed++;
-      console.error(`[bulk] ${c.id}:`, e);
-      errors.push(`${c.authorName} (${c.platform === "FB_PAGE" ? "FB" : "IG"}): ${e.message}`);
+      if ((kind === "hide" || kind === "unhide") && isAlreadyInDesiredState(e)) {
+        c.isHidden = (kind === "hide");
+        done++;
+      } else {
+        failed++;
+        console.error(`[bulk] ${c.id}:`, e);
+        errors.push(`${c.authorName} (${c.platform === "FB_PAGE" ? "FB" : "IG"}): ${e.message}`);
+      }
     }
     $("bulkStatus").textContent = `${done + failed} / ${targets.length}`;
   }
@@ -1297,6 +1309,12 @@ async function hideComment(id) {
     c.isHidden = next;
     renderInbox();
   } catch (e) {
+    if (isAlreadyInDesiredState(e)) {
+      c.isHidden = next;
+      renderInbox();
+      setRowStatus(id, next ? "Already hidden." : "Already visible.");
+      return;
+    }
     setRowStatus(id, e.message, true);
   }
 }
