@@ -139,7 +139,7 @@
       <summary>1. Credentials</summary>
       <div class="row" style="margin-top: 12px;">
         <div>
-          <label>Meta user access token. Scopes: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_read_user_content</code>, <code>pages_manage_engagement</code>, <code>instagram_basic</code>, <code>instagram_manage_comments</code>, <code>business_management</code> (for Business-Manager-owned Pages).</label>
+          <label>Meta user access token. Scopes: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_read_user_content</code>, <code>pages_manage_engagement</code>, <code>instagram_basic</code>, <code>instagram_manage_comments</code>, <code>business_management</code> (for Business-Manager-owned Pages), <code>ads_read</code> (to also pull comments from ad creatives).</label>
           <input id="metaToken" type="password" placeholder="EAAB..." />
         </div>
         <div>
@@ -248,6 +248,9 @@
           <option selected>50</option>
           <option>100</option>
         </select>
+        <label class="check-line" style="margin-left: 8px;" title="Walk /me/adaccounts to find every post referenced by an ad and pull its comments. Requires ads_read on your token.">
+          <input type="checkbox" id="includeAds" checked /> Include ads
+        </label>
         <span class="spacer"></span>
         <span id="inboxStatus" class="muted"></span>
       </div>
@@ -851,19 +854,30 @@ async function refreshInbox() {
   $("inboxStatus").textContent = "Loading…";
   setInboxStatus("");
   state.fetchSummary = [];
+
+  const includeAds = !!($("includeAds") && $("includeAds").checked);
+  let adPostsByPage = new Map();
+  if (includeAds) {
+    $("inboxStatus").textContent = "Discovering ad creatives…";
+    adPostsByPage = await discoverAdPostsByPage();
+    const totalAdPosts = [...adPostsByPage.values()].reduce((n, s) => n + s.size, 0);
+    console.log(`[ads] found ${totalAdPosts} unique ad-referenced post(s) across ${adPostsByPage.size} page(s)`);
+  }
+
   const all = [];
   for (const a of accounts) {
     const summary = {
       accountKey: a.key, name: a.name, platform: a.platform,
-      postsChecked: 0, commentsFound: 0, error: null,
+      postsChecked: 0, commentsFound: 0, extraFromAds: 0, error: null,
     };
     try {
       const result = a.platform === "FB_PAGE"
-        ? await fetchFbComments(a)
+        ? await fetchFbComments(a, adPostsByPage)
         : await fetchIgComments(a);
       for (const c of result.comments) all.push(c);
       summary.postsChecked = result.postsChecked;
       summary.commentsFound = result.comments.length;
+      summary.extraFromAds = result.extraFromAds || 0;
       state.lastFetchByAccount[a.key] = new Date().toISOString();
     } catch (e) {
       summary.error = e.message;
@@ -889,9 +903,9 @@ function renderDiagnostics() {
         if (s.error) {
           right = `<span class="err">${escapeHtml(s.error)}</span>`;
         } else if (s.commentsFound === 0) {
-          right = `<span class="zero">0 comments in ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)</span>`;
+          right = `<span class="zero">0 comments in ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)${s.extraFromAds ? `, +${s.extraFromAds} via ads` : ""}</span>`;
         } else {
-          right = `<span class="ok">${s.commentsFound} comment(s) from ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)</span>`;
+          right = `<span class="ok">${s.commentsFound} comment(s) from ${s.postsChecked} ${s.platform === "FB_PAGE" ? "post" : "media"}(s)${s.extraFromAds ? `, +${s.extraFromAds} via ads` : ""}</span>`;
         }
         return `<div class="diag-row">
           <span class="chip chip-${s.platform === "FB_PAGE" ? "fb" : "ig"}">${platLabel}</span>
@@ -903,12 +917,49 @@ function renderDiagnostics() {
   `;
 }
 
-async function fetchFbComments(account) {
-  // Pull organic wall posts AND dark/unpublished post ad creatives. /posts only
-  // returns published-to-wall content; /promotable_posts with is_published=false
-  // surfaces dark posts used in ads, which is where ad-driven brands' comments
-  // actually live. We merge by post id (dark posts don't overlap /posts, but
-  // belt-and-braces).
+// Walk /me/adaccounts -> /act_*/ads, group every ad's effective_object_story_id
+// by page id. Returns Map<pageId, Set<postId>>. Lets the FB fetch pull comments
+// from ad creatives (organic or dark) that the page's own endpoints didn't return.
+async function discoverAdPostsByPage() {
+  const creds = getCreds();
+  if (!creds.metaToken) return new Map();
+  let adAccounts = [];
+  try {
+    const body = await graphGet("/me/adaccounts", creds.metaToken, { fields: "id,name", limit: 200 });
+    adAccounts = body.data || [];
+  } catch (e) {
+    console.warn("[ads] /me/adaccounts failed (token may lack ads_read):", e.message);
+    return new Map();
+  }
+  const out = new Map();
+  for (const act of adAccounts) {
+    let params = { fields: "effective_object_story_id", limit: 500 };
+    let pages = 0;
+    while (pages < 10) {
+      let body;
+      try { body = await graphGet("/" + act.id + "/ads", creds.metaToken, params); }
+      catch (e) { console.warn(`[ads] ${act.id} /ads failed:`, e.message); break; }
+      for (const ad of (body.data || [])) {
+        const sid = ad.effective_object_story_id;
+        if (!sid || sid.indexOf("_") < 0) continue;
+        const pageId = sid.split("_", 1)[0];
+        if (!out.has(pageId)) out.set(pageId, new Set());
+        out.get(pageId).add(sid);
+      }
+      const after = body.paging && body.paging.cursors && body.paging.cursors.after;
+      if (!after) break;
+      params = Object.assign({}, params, { after });
+      pages++;
+    }
+  }
+  return out;
+}
+
+async function fetchFbComments(account, adPostsByPage) {
+  // Pull organic wall posts AND dark/unpublished post ad creatives, AND any
+  // additional post referenced by an ad (via /me/adaccounts → /act_*/ads).
+  // Merge by post id; the page token has the right scope to read + moderate
+  // comments on any post owned by the page, regardless of publish state.
   const postsLimit = getPostsLimit();
   const commentsLimit = getCommentsLimit();
   const fields = `id,message,created_time,permalink_url,comments.limit(${commentsLimit}).order(reverse_chronological){id,message,from{id,name,picture},created_time,parent{id},is_hidden,like_count,comment_count}`;
@@ -931,6 +982,23 @@ async function fetchFbComments(account) {
   const byId = new Map();
   for (const p of organic) byId.set(p.id, p);
   for (const p of dark)    if (!byId.has(p.id)) byId.set(p.id, p);
+
+  // Ad-referenced posts not already covered by /posts or /promotable_posts.
+  let extraFromAds = 0;
+  const adPostIds = adPostsByPage && adPostsByPage.get(account.id);
+  if (adPostIds && adPostIds.size) {
+    const missing = [...adPostIds].filter(pid => !byId.has(pid));
+    for (const pid of missing) {
+      try {
+        const p = await graphGet("/" + pid, account.pageAccessToken, { fields });
+        byId.set(pid, p);
+        extraFromAds++;
+      } catch (e) {
+        console.warn(`[ads] post ${pid} fetch failed:`, e.message);
+      }
+    }
+  }
+
   const posts = [...byId.values()];
 
   const out = [];
@@ -963,7 +1031,7 @@ async function fetchFbComments(account) {
       });
     }
   }
-  return { comments: out, postsChecked: posts.length };
+  return { comments: out, postsChecked: posts.length, extraFromAds };
 }
 
 async function fetchIgComments(account) {

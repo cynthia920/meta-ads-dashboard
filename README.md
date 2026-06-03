@@ -36,6 +36,16 @@ Generate a user token (Graph API Explorer or your own OAuth flow) with:
 - `business_management` — without this, `/me/accounts` silently omits Business
   Manager-owned Pages and you'll see "0 accounts found".
 
+**To also pull comments from ad creatives (dark posts and any other post
+referenced by an ad)**
+- `ads_read` — lets the dashboard walk `/me/adaccounts → /act_*/ads` and grab
+  every post referenced by an ad, then pull comments on those posts via the
+  Page Access Token. Without this scope, the **Include ads** checkbox in
+  section 3 logs a warning and refresh falls back to organic + dark posts
+  only. The page's own endpoints (`/posts`, `/promotable_posts`) cover most
+  brands; the ad-account path catches anything else (ads that re-use posts
+  from a different page, oddly-classified dark posts, etc.).
+
 Each Page you connect gets its own Page Access Token returned from
 `/me/accounts`; the dashboard uses that token for read/write on that Page and
 its linked IG Business account, so even if your user token expires, the
