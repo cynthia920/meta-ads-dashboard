@@ -211,11 +211,16 @@ function renderHeader() {
 }
 
 function renderAll() {
-  renderHeader();
-  renderKpis();
-  renderTimeseriesChart();
-  renderPlacementChart();
-  renderCampaigns();
+  const steps = [
+    ['header', renderHeader],
+    ['kpis', renderKpis],
+    ['timeseries', renderTimeseriesChart],
+    ['placement', renderPlacementChart],
+    ['campaigns', renderCampaigns],
+  ];
+  for (const [name, fn] of steps) {
+    try { fn(); } catch (e) { console.error(`renderAll: ${name} failed`, e); }
+  }
 }
 
 document.getElementById('date-range').addEventListener('change', (e) => {
