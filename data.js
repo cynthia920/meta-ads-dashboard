@@ -5,329 +5,318 @@ const meta = {
   "accountName": "[북미]성분에디터_아마존",
   "accountId": "act_1354817955224233",
   "currency": "KRW",
-  "generatedAt": "2026-06-01",
-  "dateRange": "May 2 – May 31, 2026 (top 50 by spend)"
+  "generatedAt": "2026-06-04",
+  "dateRange": "May 5 – June 3, 2026 (top 50 by spend)"
 };
 
 const campaigns = [
-  {
-    "id": "120241490584890559",
-    "name": "MAIN_US_spa_pic",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 7287110,
-    "impressions": 1003613,
-    "clicks": 23216,
-    "ctr": 2.31,
-    "cpc": 314
-  },
-  {
-    "id": "120241417955560559",
-    "name": "MAIN_KR_ccc_greentomato_video",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 7184537,
-    "impressions": 346492,
-    "clicks": 16273,
-    "ctr": 4.7,
-    "cpc": 442
-  },
   {
     "id": "120243357172150559",
     "name": "Tier2_Landing_Home",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 7145650,
-    "impressions": 695491,
-    "clicks": 23991,
-    "ctr": 3.45,
-    "cpc": 298
+    "spend": 7243708,
+    "impressions": 683566,
+    "clicks": 23636,
+    "ctr": 3.46,
+    "cpc": 306
   },
   {
     "id": "120243846710340559",
     "name": "2605_tr_Retargeting",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 6240197,
-    "impressions": 632906,
-    "clicks": 20258,
-    "ctr": 3.2,
+    "spend": 6480773,
+    "impressions": 653723,
+    "clicks": 21065,
+    "ctr": 3.22,
     "cpc": 308
   },
   {
-    "id": "120241191004880559",
-    "name": "MAIN_CN_spa_video",
+    "id": "120241490584890559",
+    "name": "MAIN_US_spa_pic",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 4968631,
-    "impressions": 336106,
-    "clicks": 15039,
-    "ctr": 4.47,
+    "spend": 6468406,
+    "impressions": 899179,
+    "clicks": 19574,
+    "ctr": 2.18,
     "cpc": 330
+  },
+  {
+    "id": "120241417955560559",
+    "name": "MAIN_KR_ccc_greentomato_video",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 6300131,
+    "impressions": 315186,
+    "clicks": 14671,
+    "ctr": 4.65,
+    "cpc": 429
   },
   {
     "id": "120243206238630559",
     "name": "2604_tr_Single_ccc _CN",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 4953851,
-    "impressions": 284476,
-    "clicks": 18649,
-    "ctr": 6.56,
-    "cpc": 266
+    "spend": 5280175,
+    "impressions": 306544,
+    "clicks": 19244,
+    "ctr": 6.28,
+    "cpc": 274
   },
   {
-    "id": "120222064753510559",
-    "name": "2504_tr_Collab",
+    "id": "120241191004880559",
+    "name": "MAIN_CN_spa_video",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 3888158,
-    "impressions": 195899,
-    "clicks": 14412,
-    "ctr": 7.36,
-    "cpc": 270
+    "spend": 4780499,
+    "impressions": 337834,
+    "clicks": 14567,
+    "ctr": 4.31,
+    "cpc": 328
   },
   {
     "id": "120240594379160559",
     "name": "2603_AMZ_BridgePage",
     "status": "Active",
     "objective": "OUTCOME_SALES",
-    "spend": 3660483,
-    "impressions": 87318,
-    "clicks": 5193,
-    "ctr": 5.95,
-    "cpc": 705
+    "spend": 4704877,
+    "impressions": 109480,
+    "clicks": 6361,
+    "ctr": 5.81,
+    "cpc": 740
+  },
+  {
+    "id": "120222064753510559",
+    "name": "2504_tr_Collab",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 4295882,
+    "impressions": 212283,
+    "clicks": 15629,
+    "ctr": 7.36,
+    "cpc": 275
   },
   {
     "id": "120240561439880559",
     "name": "MAIN_KR_ccc_video",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 3327822,
-    "impressions": 145280,
-    "clicks": 7478,
-    "ctr": 5.15,
-    "cpc": 445
-  },
-  {
-    "id": "120243073903220559",
-    "name": "2604_tr_Single_spa_CN",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 2521980,
-    "impressions": 175742,
-    "clicks": 9613,
-    "ctr": 5.47,
-    "cpc": 262
-  },
-  {
-    "id": "120241304878420559",
-    "name": "MAIN_KR_spa_pic",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 2169670,
-    "impressions": 149422,
-    "clicks": 6081,
-    "ctr": 4.07,
-    "cpc": 357
-  },
-  {
-    "id": "120243645514610559",
-    "name": "Tier3_TEST_ccc",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 1723167,
-    "impressions": 159043,
-    "clicks": 10038,
-    "ctr": 6.31,
-    "cpc": 172
-  },
-  {
-    "id": "120240386521410559",
-    "name": "2602_tr_Product_spa_video2",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 1715355,
-    "impressions": 132211,
-    "clicks": 6527,
-    "ctr": 4.94,
-    "cpc": 263
-  },
-  {
-    "id": "120244814108500559",
-    "name": "Single_US_EGFamp",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 1623527,
-    "impressions": 111532,
-    "clicks": 7276,
-    "ctr": 6.52,
-    "cpc": 223
-  },
-  {
-    "id": "120242207041770559",
-    "name": "2604_tr_Single_spa_CN_2",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 1513499,
-    "impressions": 93873,
-    "clicks": 5724,
-    "ctr": 6.1,
-    "cpc": 264
-  },
-  {
-    "id": "120244123107460559",
-    "name": "2605_tr_Collab",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 1449683,
-    "impressions": 92112,
-    "clicks": 8852,
-    "ctr": 9.61,
-    "cpc": 164
+    "spend": 2799921,
+    "impressions": 119918,
+    "clicks": 6187,
+    "ctr": 5.16,
+    "cpc": 453
   },
   {
     "id": "120245553596360559",
     "name": "Single_ccc _CN",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 1329427,
-    "impressions": 81238,
-    "clicks": 3528,
-    "ctr": 4.34,
-    "cpc": 377
+    "spend": 1941424,
+    "impressions": 118444,
+    "clicks": 5380,
+    "ctr": 4.54,
+    "cpc": 361
   },
   {
-    "id": "120233288536990559",
-    "name": "2510_tr_Collab",
+    "id": "120240386521410559",
+    "name": "2602_tr_Product_spa_video2",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 1240249,
-    "impressions": 71958,
-    "clicks": 4978,
-    "ctr": 6.92,
-    "cpc": 249
+    "spend": 1908269,
+    "impressions": 158361,
+    "clicks": 7162,
+    "ctr": 4.52,
+    "cpc": 266
   },
   {
-    "id": "120245273809200559",
-    "name": "Single_US_ccc",
+    "id": "120243073903220559",
+    "name": "2604_tr_Single_spa_CN",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 1006646,
-    "impressions": 71401,
-    "clicks": 5103,
-    "ctr": 7.15,
-    "cpc": 197
+    "spend": 1857743,
+    "impressions": 127456,
+    "clicks": 6949,
+    "ctr": 5.45,
+    "cpc": 267
   },
   {
-    "id": "120241871848900559",
-    "name": "2604_tr_Single_serum",
+    "id": "120244814108500559",
+    "name": "Single_US_EGFamp",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 992190,
-    "impressions": 77194,
-    "clicks": 3517,
-    "ctr": 4.56,
-    "cpc": 282
+    "spend": 1805158,
+    "impressions": 126499,
+    "clicks": 8357,
+    "ctr": 6.61,
+    "cpc": 216
   },
   {
-    "id": "120242792354600559",
-    "name": "PROMO_US_PDRNamp",
-    "status": "Paused",
-    "objective": "LINK_CLICKS",
-    "spend": 986347,
-    "impressions": 78982,
-    "clicks": 3167,
-    "ctr": 4.01,
-    "cpc": 311
-  },
-  {
-    "id": "120238700090740559",
-    "name": "2601_tr_Collab",
+    "id": "120241304878420559",
+    "name": "MAIN_KR_spa_pic",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 958378,
-    "impressions": 63404,
-    "clicks": 5089,
-    "ctr": 8.03,
-    "cpc": 188
+    "spend": 1795447,
+    "impressions": 129231,
+    "clicks": 5297,
+    "ctr": 4.1,
+    "cpc": 339
   },
   {
     "id": "120245630627510559",
     "name": "Single_US_spa",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 799760,
-    "impressions": 54365,
-    "clicks": 2162,
-    "ctr": 3.98,
-    "cpc": 370
+    "spend": 1759098,
+    "impressions": 177213,
+    "clicks": 5127,
+    "ctr": 2.89,
+    "cpc": 343
+  },
+  {
+    "id": "120244123107460559",
+    "name": "2605_tr_Collab",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 1642968,
+    "impressions": 117157,
+    "clicks": 9575,
+    "ctr": 8.17,
+    "cpc": 172
+  },
+  {
+    "id": "120243645514610559",
+    "name": "Tier3_TEST_ccc",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 1613055,
+    "impressions": 149072,
+    "clicks": 9379,
+    "ctr": 6.29,
+    "cpc": 172
+  },
+  {
+    "id": "120242207041770559",
+    "name": "2604_tr_Single_spa_CN_2",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 1499822,
+    "impressions": 92442,
+    "clicks": 5237,
+    "ctr": 5.67,
+    "cpc": 286
+  },
+  {
+    "id": "120245273809200559",
+    "name": "Single_US_ccc",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 1425364,
+    "impressions": 98458,
+    "clicks": 6511,
+    "ctr": 6.61,
+    "cpc": 219
+  },
+  {
+    "id": "120233288536990559",
+    "name": "2510_tr_Collab",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 1316555,
+    "impressions": 78838,
+    "clicks": 5322,
+    "ctr": 6.75,
+    "cpc": 247
+  },
+  {
+    "id": "120238700090740559",
+    "name": "2601_tr_Collab",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 971438,
+    "impressions": 62662,
+    "clicks": 5163,
+    "ctr": 8.24,
+    "cpc": 188
+  },
+  {
+    "id": "120245719400960559",
+    "name": "Single_CN_spa",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 904974,
+    "impressions": 70291,
+    "clicks": 4081,
+    "ctr": 5.81,
+    "cpc": 222
+  },
+  {
+    "id": "120241871848900559",
+    "name": "2604_tr_Single_serum",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 899038,
+    "impressions": 68782,
+    "clicks": 3131,
+    "ctr": 4.55,
+    "cpc": 287
   },
   {
     "id": "120244982517080559",
     "name": "Single_CN_EGFamp",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 652959,
-    "impressions": 43712,
-    "clicks": 2674,
-    "ctr": 6.12,
-    "cpc": 244
-  },
-  {
-    "id": "120243116823180559",
-    "name": "PROMO_US_serum",
-    "status": "Paused",
-    "objective": "LINK_CLICKS",
-    "spend": 636922,
-    "impressions": 83074,
-    "clicks": 1913,
-    "ctr": 2.3,
-    "cpc": 333
-  },
-  {
-    "id": "120240454101530559",
-    "name": "2603_tr_Product_spa_pic",
-    "status": "Paused",
-    "objective": "LINK_CLICKS",
-    "spend": 602223,
-    "impressions": 45335,
-    "clicks": 2567,
-    "ctr": 5.66,
-    "cpc": 235
+    "spend": 843712,
+    "impressions": 57256,
+    "clicks": 3473,
+    "ctr": 6.07,
+    "cpc": 243
   },
   {
     "id": "120240429832530559",
     "name": "2602_tr_Product_spa_Gif",
-    "status": "Active",
+    "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 568440,
-    "impressions": 26308,
-    "clicks": 1243,
-    "ctr": 4.72,
-    "cpc": 457
+    "spend": 793689,
+    "impressions": 37633,
+    "clicks": 1800,
+    "ctr": 4.78,
+    "cpc": 441
+  },
+  {
+    "id": "120242792354600559",
+    "name": "PROMO_US_PDRNamp",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 788515,
+    "impressions": 65386,
+    "clicks": 2458,
+    "ctr": 3.76,
+    "cpc": 321
   },
   {
     "id": "120240085113230559",
     "name": "2602_tr_Product_spa_KR",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 521973,
-    "impressions": 41743,
-    "clicks": 1874,
-    "ctr": 4.49,
-    "cpc": 279
+    "spend": 554866,
+    "impressions": 44335,
+    "clicks": 1996,
+    "ctr": 4.5,
+    "cpc": 278
   },
   {
-    "id": "120241863750590559",
-    "name": "Tier3_TEST_spa",
+    "id": "120243204377180559",
+    "name": "2604_tr_Collab_spa",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 504429,
-    "impressions": 38326,
-    "clicks": 1931,
-    "ctr": 5.04,
-    "cpc": 261
+    "spend": 498606,
+    "impressions": 39855,
+    "clicks": 3891,
+    "ctr": 9.76,
+    "cpc": 128
   },
   {
     "id": "120244685763480559",
@@ -341,81 +330,81 @@ const campaigns = [
     "cpc": 217
   },
   {
-    "id": "120240156107510559",
-    "name": "2602_tr_Product_spa_pic",
+    "id": "120240454101530559",
+    "name": "2603_tr_Product_spa_pic",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 483546,
-    "impressions": 56792,
-    "clicks": 1708,
-    "ctr": 3.01,
-    "cpc": 283
+    "spend": 483848,
+    "impressions": 33115,
+    "clicks": 2100,
+    "ctr": 6.34,
+    "cpc": 230
   },
   {
-    "id": "120243204377180559",
-    "name": "2604_tr_Collab_spa",
+    "id": "120241863750590559",
+    "name": "Tier3_TEST_spa",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 457803,
-    "impressions": 36422,
-    "clicks": 3538,
-    "ctr": 9.71,
-    "cpc": 129
+    "spend": 446388,
+    "impressions": 33562,
+    "clicks": 1464,
+    "ctr": 4.36,
+    "cpc": 305
   },
   {
-    "id": "120241489553690559",
-    "name": "2602_tr_Product_spa_video3",
+    "id": "120245192797370559",
+    "name": "Single_US_Kojicamp",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 429622,
-    "impressions": 29808,
-    "clicks": 1307,
-    "ctr": 4.38,
-    "cpc": 329
+    "spend": 442864,
+    "impressions": 37854,
+    "clicks": 3351,
+    "ctr": 8.85,
+    "cpc": 132
+  },
+  {
+    "id": "120232776865080559",
+    "name": "2509_tr_Product_serum_pic",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 437330,
+    "impressions": 38897,
+    "clicks": 1962,
+    "ctr": 5.04,
+    "cpc": 223
   },
   {
     "id": "120245352036360559",
     "name": "Single_US_serum",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 406385,
-    "impressions": 30589,
-    "clicks": 2217,
+    "spend": 431411,
+    "impressions": 32930,
+    "clicks": 2388,
     "ctr": 7.25,
-    "cpc": 183
+    "cpc": 181
   },
   {
-    "id": "120245192797370559",
-    "name": "Single_US_Kojicamp",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 403219,
-    "impressions": 34298,
-    "clicks": 3074,
-    "ctr": 8.96,
-    "cpc": 131
-  },
-  {
-    "id": "120242529475620559",
-    "name": "2604_tr_Collab",
+    "id": "120240156107510559",
+    "name": "2602_tr_Product_spa_pic",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 386084,
-    "impressions": 21829,
-    "clicks": 2275,
-    "ctr": 10.42,
-    "cpc": 170
+    "spend": 430113,
+    "impressions": 50719,
+    "clicks": 1490,
+    "ctr": 2.94,
+    "cpc": 289
   },
   {
-    "id": "120245719400960559",
-    "name": "Single_CN_spa",
+    "id": "120244813460510559",
+    "name": "Single_KR_EGFamp",
     "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 361948,
-    "impressions": 26020,
-    "clicks": 1894,
-    "ctr": 7.28,
-    "cpc": 191
+    "spend": 419539,
+    "impressions": 25727,
+    "clicks": 2008,
+    "ctr": 7.81,
+    "cpc": 209
   },
   {
     "id": "120244455484000559",
@@ -429,28 +418,6 @@ const campaigns = [
     "cpc": 354
   },
   {
-    "id": "120244813460510559",
-    "name": "Single_KR_EGFamp",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 348453,
-    "impressions": 21242,
-    "clicks": 1662,
-    "ctr": 7.82,
-    "cpc": 210
-  },
-  {
-    "id": "120232776865080559",
-    "name": "2509_tr_Product_serum_pic",
-    "status": "Active",
-    "objective": "LINK_CLICKS",
-    "spend": 338700,
-    "impressions": 31018,
-    "clicks": 1521,
-    "ctr": 4.9,
-    "cpc": 223
-  },
-  {
     "id": "120239711899320559",
     "name": "2602_tr_Collab",
     "status": "Paused",
@@ -462,48 +429,48 @@ const campaigns = [
     "cpc": 153
   },
   {
-    "id": "120243113969400559",
-    "name": "PROMO_US_spa",
+    "id": "120242529475620559",
+    "name": "2604_tr_Collab",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 318101,
-    "impressions": 23459,
-    "clicks": 1051,
-    "ctr": 4.48,
-    "cpc": 303
+    "spend": 334122,
+    "impressions": 18623,
+    "clicks": 1933,
+    "ctr": 10.38,
+    "cpc": 173
   },
   {
     "id": "120244492415450559",
     "name": "Promo_KR_EGFamp",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 304003,
-    "impressions": 17551,
-    "clicks": 701,
+    "spend": 312498,
+    "impressions": 18127,
+    "clicks": 723,
     "ctr": 3.99,
-    "cpc": 434
+    "cpc": 432
   },
   {
-    "id": "120243827431970559",
-    "name": "PROMO_KR_spa",
+    "id": "120243116823180559",
+    "name": "PROMO_US_serum",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 276351,
-    "impressions": 15189,
-    "clicks": 807,
-    "ctr": 5.31,
-    "cpc": 342
+    "spend": 289585,
+    "impressions": 40053,
+    "clicks": 751,
+    "ctr": 1.88,
+    "cpc": 386
   },
   {
-    "id": "120241037749320559",
-    "name": "2603_tr_Product_spa_Video_KR",
+    "id": "120241489553690559",
+    "name": "2602_tr_Product_spa_video3",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 273794,
-    "impressions": 19030,
-    "clicks": 798,
-    "ctr": 4.19,
-    "cpc": 343
+    "spend": 262423,
+    "impressions": 17487,
+    "clicks": 811,
+    "ctr": 4.64,
+    "cpc": 324
   },
   {
     "id": "120243117973700559",
@@ -517,70 +484,85 @@ const campaigns = [
     "cpc": 271
   },
   {
-    "id": "120243617509710559",
-    "name": "2604_tr_Single_Kojicamp",
-    "status": "Paused",
+    "id": "120241192378830559",
+    "name": "2603_tr_Product_AI_Video2",
+    "status": "Active",
     "objective": "LINK_CLICKS",
-    "spend": 238711,
-    "impressions": 22117,
-    "clicks": 1384,
-    "ctr": 6.26,
+    "spend": 220783,
+    "impressions": 12274,
+    "clicks": 1282,
+    "ctr": 10.44,
     "cpc": 172
   },
   {
-    "id": "120242340156370559",
-    "name": "2604_tr_Single_spa_2",
+    "id": "120245351307200559",
+    "name": "Single_KR_ccc",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 232653,
-    "impressions": 21953,
-    "clicks": 1386,
-    "ctr": 6.31,
-    "cpc": 168
+    "spend": 213103,
+    "impressions": 12948,
+    "clicks": 641,
+    "ctr": 4.95,
+    "cpc": 332
   },
   {
-    "id": "120242330264390559",
-    "name": "2604_tr_Promo",
+    "id": "120241037749320559",
+    "name": "2603_tr_Product_spa_Video_KR",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 223166,
-    "impressions": 19311,
-    "clicks": 2231,
-    "ctr": 11.55,
-    "cpc": 100
+    "spend": 201565,
+    "impressions": 12670,
+    "clicks": 587,
+    "ctr": 4.63,
+    "cpc": 343
+  },
+  {
+    "id": "120241180482210559",
+    "name": "2603_tr_Product_ttshop_gnscreenvd2",
+    "status": "Active",
+    "objective": "LINK_CLICKS",
+    "spend": 193483,
+    "impressions": 12673,
+    "clicks": 1152,
+    "ctr": 9.09,
+    "cpc": 168
   },
   {
     "id": "120243357372610559",
     "name": "2604_tr_Promo_ccc",
     "status": "Paused",
     "objective": "LINK_CLICKS",
-    "spend": 215309,
-    "impressions": 14580,
-    "clicks": 580,
-    "ctr": 3.98,
-    "cpc": 371
+    "spend": 178584,
+    "impressions": 13076,
+    "clicks": 461,
+    "ctr": 3.53,
+    "cpc": 387
+  },
+  {
+    "id": "120243113969400559",
+    "name": "PROMO_US_spa",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 174619,
+    "impressions": 13066,
+    "clicks": 494,
+    "ctr": 3.78,
+    "cpc": 353
+  },
+  {
+    "id": "120243827431970559",
+    "name": "PROMO_KR_spa",
+    "status": "Paused",
+    "objective": "LINK_CLICKS",
+    "spend": 165066,
+    "impressions": 8767,
+    "clicks": 468,
+    "ctr": 5.34,
+    "cpc": 353
   }
 ];
 
 const timeseries = [
-  {
-    "date": "2026-03-03",
-    "spend": 3337957,
-    "impressions": 227681,
-    "clicks": 11327
-  },
-  {
-    "date": "2026-03-04",
-    "spend": 4235505,
-    "impressions": 276261,
-    "clicks": 13203
-  },
-  {
-    "date": "2026-03-05",
-    "spend": 3973777,
-    "impressions": 277225,
-    "clicks": 12620
-  },
   {
     "date": "2026-03-06",
     "spend": 3931466,
@@ -1094,46 +1076,64 @@ const timeseries = [
   {
     "date": "2026-05-30",
     "spend": 4503916,
-    "impressions": 268958,
+    "impressions": 268960,
     "clicks": 14423
   },
   {
     "date": "2026-05-31",
-    "spend": 4953804,
-    "impressions": 304695,
-    "clicks": 16344
+    "spend": 4955233,
+    "impressions": 304786,
+    "clicks": 16347
+  },
+  {
+    "date": "2026-06-01",
+    "spend": 4238065,
+    "impressions": 264993,
+    "clicks": 13276
+  },
+  {
+    "date": "2026-06-02",
+    "spend": 3200036,
+    "impressions": 250427,
+    "clicks": 9886
+  },
+  {
+    "date": "2026-06-03",
+    "spend": 2580720,
+    "impressions": 215555,
+    "clicks": 8481
   }
 ];
 
 const placements = [
   {
     "name": "Facebook",
-    "spend": 57106215,
-    "share": 69.91
+    "spend": 57804483,
+    "share": 70.47
   },
   {
     "name": "Instagram",
-    "spend": 23655189,
-    "share": 28.96
+    "spend": 23307746,
+    "share": 28.41
   },
   {
     "name": "Threads",
-    "spend": 611949,
-    "share": 0.75
+    "spend": 597405,
+    "share": 0.73
   },
   {
     "name": "Audience Network",
-    "spend": 255284,
+    "spend": 255282,
     "share": 0.31
   },
   {
     "name": "Other",
-    "spend": 54830,
-    "share": 0.07
+    "spend": 63918,
+    "share": 0.08
   },
   {
     "name": "Messenger",
-    "spend": 1764,
+    "spend": 2176,
     "share": 0.0
   }
 ];

@@ -13,8 +13,8 @@ OUT = HERE.parent / "data.js"
 ACCOUNT_NAME = "[북미]성분에디터_아마존"
 ACCOUNT_ID = "act_1354817955224233"
 CURRENCY = "KRW"
-GENERATED_AT = "2026-06-01"
-DATE_RANGE_LABEL = "May 2 – May 31, 2026 (top 50 by spend)"
+GENERATED_AT = "2026-06-04"
+DATE_RANGE_LABEL = "May 5 – June 3, 2026 (top 50 by spend)"
 
 PLACEMENT_LABEL = {
     "facebook": "Facebook",
