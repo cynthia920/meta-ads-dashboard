@@ -733,7 +733,7 @@
     document.getElementById('kpi-ctr').textContent         = fmtPct(computed.kpis.avg_ctr);
     document.getElementById('kpi-cpc').textContent         = fmtKRW(computed.kpis.avg_cpc);
     document.getElementById('kpi-cpm').textContent         = fmtKRW(computed.kpis.avg_cpm);
-    document.getElementById('kpi-amz-sales').textContent       = fmtKRW(computed.kpis.amz_sales_krw);
+    document.getElementById('kpi-amz-sales').innerHTML         = fmtKRW(computed.kpis.amz_sales_krw) + ` <span style="font-size:16px;font-weight:500;color:var(--muted);">${fmtUSD(computed.kpis.amz_sales)}</span>`;
     document.getElementById('kpi-amz-sales-sub').textContent   = `${computed.kpis.amz_matched_ads}/${computed.kpis.ad_count} ads matched · ${fmtUSD(computed.kpis.amz_sales)} USD`;
     const roas = computed.kpis.total_spend > 0 ? computed.kpis.amz_sales_krw / computed.kpis.total_spend : 0;
     document.getElementById('kpi-roas').textContent            = fmtRoas(roas);
