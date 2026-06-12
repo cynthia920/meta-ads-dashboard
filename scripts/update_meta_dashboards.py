@@ -225,12 +225,16 @@ def fetch_ads(account_id: str, token: str, days: int = 30, label: str = "main") 
 
 def fetch_placements(account_id: str, token: str, days: int = 30) -> list[dict]:
     date_start, date_end = get_date_range(days)
-    data  = _graph(f"{account_id}/insights", token, {
-        "fields": "publisher_platform,spend,impressions",
-        "breakdowns": "publisher_platform",
-        "time_range": json.dumps({"since": date_start, "until": date_end}),
-        "level": "account", "limit": "50",
-    })
+    try:
+        data = _graph(f"{account_id}/insights", token, {
+            "fields": "spend,impressions",
+            "breakdowns": "publisher_platform",
+            "time_range": json.dumps({"since": date_start, "until": date_end}),
+            "level": "account", "limit": "50",
+        })
+    except Exception as e:
+        print(f"      WARNING: placements fetch failed ({e}) — skipping")
+        return []
     rows  = data.get("data", [])
     total = sum(round(float(r.get("spend", 0))) for r in rows)
     LABEL = {"facebook": "Facebook", "instagram": "Instagram", "messenger": "Messenger",
