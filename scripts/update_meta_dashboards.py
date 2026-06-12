@@ -515,7 +515,9 @@ def main():
     meta_token = os.environ.get("META_TOKEN", "")
     gh_token   = os.environ.get("GH_TOKEN",   "")
     password   = os.environ.get("STATICRYPT_PASSWORD", "")
-    bella_id   = os.environ.get("BELLA_ACCOUNT_ID", "")
+    bella_id   = os.environ.get("BELLA_ACCOUNT_ID", "").strip()
+    if bella_id and not bella_id.startswith("act_"):
+        bella_id = "act_" + bella_id
     sheets_id  = os.environ.get("SHEETS_ID", DEFAULT_SHEETS)
     days       = int(os.environ.get("DAYS", "30"))
 
@@ -548,9 +550,13 @@ def main():
     bd = bc = ba = []
     if bella_id:
         print("[5/6] Bella 데이터…")
-        bd = fetch_daily_insights(bella_id, meta_token, days)
-        bc = fetch_campaigns(bella_id, meta_token, days, "bella")
-        ba = fetch_ads(bella_id, meta_token, days, "bella")
+        try:
+            bd = fetch_daily_insights(bella_id, meta_token, days)
+            bc = fetch_campaigns(bella_id, meta_token, days, "bella")
+            ba = fetch_ads(bella_id, meta_token, days, "bella")
+        except Exception as e:
+            print(f"      WARNING: Bella fetch failed ({e}) — Bella 데이터 빈 배열 처리")
+            bd = bc = ba = []
     else:
         print("[5/6] Bella 스킵")
 
